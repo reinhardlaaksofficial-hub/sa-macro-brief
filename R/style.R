@@ -29,7 +29,8 @@ theme_brief <- function(base_size = 9) {
 
 #' Standard source caption. Every chart carries the code and retrieval date.
 source_caption <- function(code, retrieved) {
-  sprintf("Source: Statistics South Africa, %s. Retrieved %s.", code, retrieved)
+  sprintf("Source: Statistics South Africa, %s. Retrieved %s.", code,
+          substr(retrieved, 1, 10))
 }
 
 #' Save a chart deterministically (fixed device, size, dpi; no timestamps).

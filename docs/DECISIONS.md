@@ -100,6 +100,31 @@ that follows a number-free label line. Identities (employed + unemployed =
 labour force; labour force + outside = working-age population) are asserted
 with a 3-thousand rounding tolerance before any output is produced.
 
+## Stage 6 — analytics beyond arithmetic
+
+**Breadth denominator.** The share of CPI weight inflating above the 4,5%
+midpoint is computed over *measurable* weight: products whose y/y cannot be
+computed in a month (history starts later) leave both numerator and
+denominator. The alternative — treating unmeasurable products as
+below-midpoint — would bias breadth downward exactly when the basket is
+refreshed. Coverage is reported alongside the share (87,8% in April 2025,
+reflecting products new to the Jan 2025 basket).
+
+**Contribution formula.** Division contribution to headline y/y is
+(w_i/100)·yy_i·(I_i,t−12/I_head,t−12): the index-ratio factor re-prices the
+Dec 2024 weight to the comparison month, which is what makes contributions
+sum to the headline (gap 0,03 pp in July 2026). Reconciliation runs twice:
+internally against the computed headline (abort beyond 0,15 pp) and against
+the release PDF's Table C when cached (abort beyond 0,1 pp on any division).
+On July 2026 every published division agrees within 0,05 pp; Stats SA folds
+divisions smaller than ~0,05 pp into a "Residual" line, which is why two
+computed divisions have no published counterpart.
+
+**GDP revision tracking.** First-print movement is computed from the
+accumulated vintage store rather than a separate ledger, so it needs no extra
+bookkeeping on release day; with a single vintage cached it reports nothing
+rather than fabricating a history.
+
 **Quarto binary.** The machine has no standalone Quarto; the pipeline uses the
 Quarto 1.8.25 bundled with RStudio via the `QUARTO_PATH` environment variable
 set in `sa-brief`. Installing a second Quarto via Homebrew was rejected as

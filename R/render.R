@@ -83,6 +83,12 @@ payload_cpi <- function(t, root = here::here()) {
                file.path(root, "output", "charts", sprintf("cpi_%s_divisions.png", t$period)),
                width = 3.45, height = 2.5)
   )
+  if (!is.null(t$breadth)) {
+    charts <- c(charts,
+      save_chart(chart_cpi_breadth(t),
+                 file.path(root, "output", "charts", sprintf("cpi_%s_breadth.png", t$period)),
+                 width = 3.2, height = 2.2))
+  }
 
   list(release = "cpi", period = t$period, label = t$label,
        title = sprintf("Consumer Price Index — %s", t$label),

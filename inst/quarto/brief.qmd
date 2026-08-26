@@ -72,6 +72,8 @@ cat("```\n")
 ```{r table, results="asis"}
 cat("```{=latex}\n")
 tbl <- p$table
+third_chart <- length(p$charts) >= 3
+if (third_chart) cat("\\begin{minipage}[t]{0.55\\textwidth}\n\\vspace{0pt}\n")
 if (!is.null(tbl) && nrow(tbl) > 0) {
   align <- paste0("l", paste(rep("r", ncol(tbl) - 1), collapse = ""))
   cat(sprintf("{\\footnotesize\n\\begin{tabular}{%s}\n\\toprule\n", align))
@@ -80,6 +82,10 @@ if (!is.null(tbl) && nrow(tbl) > 0) {
     cat(paste(esc(as.character(unlist(tbl[i, ]))), collapse = " & "), "\\\\\n")
   }
   cat("\\bottomrule\n\\end{tabular}\n}\n\n")
+}
+if (third_chart) {
+  cat(sprintf("\\end{minipage}\\hfill\\begin{minipage}[t]{0.43\\textwidth}\n\\vspace{0pt}\n\\includegraphics[width=\\textwidth]{%s}\n\\end{minipage}\n",
+              p$charts[3]))
 }
 cat("```\n")
 ```

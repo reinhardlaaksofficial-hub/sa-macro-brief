@@ -273,9 +273,18 @@ transform_gdp <- function(d, period, root = here::here()) {
   flags <- if (length(pending) > 0)
     "Note: Stats SA has announced a rebasing of the national accounts to a 2022 base year, pending later in 2026." else character(0)
 
+  revision_history <- gdp_revision_history(root)
+  if (nrow(revision_history) > 0) {
+    flags <- c(flags, sprintf(
+      "Across the %d quarters tracked so far, first-print q/q growth has moved by %s pp on average between vintages (mean absolute revision).",
+      nrow(revision_history),
+      format_za(mean(abs(revision_history$revision_pp), na.rm = TRUE), 2)))
+  }
+
   list(release = "gdp", period = period, label = period_label(period),
        headline = headline, qq_history = qq_history,
        contributions = contributions, flags = flags,
+       revision_history = revision_history,
        revisions = revisions, vintage = d$vintage)
 }
 
