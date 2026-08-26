@@ -9,13 +9,11 @@ calendar:
     rule: "Roughly ten weeks after quarter end, Tuesday, 11:30 (Q1 2026 published 11:00)"
   qlfs:
     rule: "Roughly six to eight weeks after quarter end, 11:30"
+# Verified from publication pages ("Publication date & time"):
 known_dates:
   - release: cpi
-    period: "2026-07"
-    published: "2026-08-19 10:00"
+    period: "2026-06"
+    published: "2026-07-22 10:00"   # CPI reference period lags release ~3 weeks
   - release: gdp
     period: "2026Q1"
     published: "2026-06-09 11:00"
-  - release: qlfs
-    period: "2026Q2"
-    published: "2026-08-12 11:30"

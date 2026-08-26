@@ -7,12 +7,12 @@ cpi:
   total_country: "CPI60001"   # CPI Headline, total country
   rural: "CPI60051"           # CPI Headline, rural areas
   pensioners: "CPI60065"      # CPI for pensioners
-  core: "CPS59200"            # CPI excl. food & NAB, fuel and energy (discovered
-                              # from the COICOP file; label-verified at read time)
+  core: "CPS00014"            # CPI excl food and NAB, fuel and energy (verified
+                              # against the 202607 COICOP file; label-checked at read time)
   provinces:
     western_cape: "CPI61001"  # provinces run CPI61001-CPI69001
   divisions:                  # COICOP 2018 divisions, all urban areas
-    # populated at read time from H04 blocks; codes asserted present:
+    # verified against the 202607 COICOP file; codes asserted present:
     food_nab: "CPS01000"
     alcohol_tobacco: "CPS02000"
     clothing_footwear: "CPS03000"
@@ -22,7 +22,7 @@ cpi:
     transport: "CPS07000"
     information_communication: "CPS08000"
     recreation_culture: "CPS09000"
-    education: "CPS10000"
+    education: "CPS10100"     # note: division 10 head is CPS10100, not CPS10000
     restaurants_accommodation: "CPS11000"
     insurance_financial: "CPS12000"
     personal_care_misc: "CPS13000"
