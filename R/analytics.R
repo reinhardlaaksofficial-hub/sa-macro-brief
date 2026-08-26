@@ -76,7 +76,13 @@ reconcile_contributions_pdf <- function(contrib, period, root = here::here()) {
   tag <- format(p$date, "%B%Y")
   pdf <- find_cached_artifact("cpi", paste0("^P0141", tag, "\\.pdf$"), NULL, root)
   if (is.na(pdf)) return(NULL)
-  txt <- pdftools::pdf_text(pdf)
+  reconcile_contributions_text(contrib, pdftools::pdf_text(pdf))
+}
+
+#' Reconcile against Table C given the release PDF's text. Split out from the
+#' path-based wrapper so it can be tested from a small text fixture instead of
+#' a redistributed PDF.
+reconcile_contributions_text <- function(contrib, txt) {
   # the contents page also matches "Table C"; the data page carries "All items"
   page_i <- which(grepl("Table C", txt) & grepl("[Cc]ontribution", txt) &
                   grepl("All items", txt))[1]

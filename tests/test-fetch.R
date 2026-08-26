@@ -40,8 +40,10 @@ test_that("is_challenge_page recognises the Imperva interstitial", {
 })
 
 test_that("find_cached_artifact matches release artefacts by pattern and period tag", {
-  root <- here::here()
-  skip_if_not(dir.exists(file.path(root, "data-raw", "cpi")))
+  root <- withr::local_tempdir()
+  dir.create(file.path(root, "data-raw", "cpi"), recursive = TRUE)
+  file.create(file.path(root, "data-raw", "cpi",
+                        "P0141 - CPI(COICOP) from Jan 2008 (202607).zip"))
   hit <- find_cached_artifact("cpi", "CPI\\(COICOP\\) from Jan 2008.*\\.zip$", "202607", root)
   expect_false(is.na(hit))
   miss <- find_cached_artifact("cpi", "CPI\\(COICOP\\) from Jan 2008.*\\.zip$", "199901", root)

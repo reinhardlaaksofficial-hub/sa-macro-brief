@@ -2,11 +2,14 @@
 # Known-good values from the brief: LU1 33,6; LU3 43,8; absorption 39,6;
 # participation 59,6; employed 16 739 thousand.
 
-qlfs <- tryCatch(suppressWarnings(load_qlfs("2026Q2", root = here::here())),
-                 error = function(e) NULL)
+# Offline: the release PDF's text for the pages the parsers read. No PDF is
+# redistributed (see data-raw/make-fixtures.R).
+qlfs_txt <- fx_qlfs_text()
+qlfs <- list(table_a = suppressWarnings(parse_qlfs_table_a(qlfs_txt)),
+             table_b = suppressWarnings(parse_qlfs_table_b(qlfs_txt)))
+qlfs$periods <- attr(qlfs$table_a, "periods")
 
 test_that("Table A reproduces the Q2 2026 release values", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
   a <- qlfs$table_a
   g <- function(k, col = "q_now") a[a$key == k, col]
   expect_equal(g("lu1"), 33.6)
@@ -19,7 +22,6 @@ test_that("Table A reproduces the Q2 2026 release values", {
 })
 
 test_that("space-thousands and decimal commas parse; rate changes are pp", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
   a <- qlfs$table_a
   g <- function(k, col = "q_now") a[a$key == k, col]
   expect_equal(g("population_15_64", "q_yr_ago"), 41822)  # "41 822"
@@ -29,7 +31,6 @@ test_that("space-thousands and decimal commas parse; rate changes are pp", {
 })
 
 test_that("informality rows carry no pre-break comparisons (Q3:2025 break)", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
   a <- qlfs$table_a
   for (k in c("formal_sector", "informal_sector")) {
     expect_true(is.na(a[a$key == k, "q_yr_ago"]), label = paste(k, "year-ago NA"))
@@ -39,12 +40,10 @@ test_that("informality rows carry no pre-break comparisons (Q3:2025 break)", {
 })
 
 test_that("accounting identities hold", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
   expect_silent(assert_qlfs_identities(qlfs$table_a))
 })
 
 test_that("Table B industries parse with Total matching Table A employed", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
   b <- qlfs$table_b
   expect_equal(nrow(b), 11L)
   expect_equal(b$q_now[b$industry == "Total"],
@@ -53,10 +52,7 @@ test_that("Table B industries parse with Total matching Table A employed", {
 })
 
 test_that("requesting the wrong quarter fails the cover-period assertion", {
-  skip_if(is.null(qlfs), "QLFS Q2 2026 PDF not cached")
-  paths <- fetch_release("qlfs", "2026Q2", root = here::here())
-  txt <- pdftools::pdf_text(paths$main)
-  expect_error(assert_qlfs_cover(txt, "2026Q1"),
+  expect_error(assert_qlfs_cover(qlfs_txt, "2026Q1"),
                "check_reported_period_matches_requested")
-  expect_true(assert_qlfs_cover(txt, "2026Q2"))
+  expect_true(assert_qlfs_cover(qlfs_txt, "2026Q2"))
 })

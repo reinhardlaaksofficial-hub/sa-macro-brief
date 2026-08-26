@@ -1,8 +1,13 @@
 # sa-macro-brief
 
-**One command turns a Stats SA release into a one-page PDF briefing note —
-the work a junior bank economist does by hand in the hour after the embargo
-lifts.**
+[![tests](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml/badge.svg)](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**One command turns a Statistics South Africa release into a one-page PDF
+briefing note — the work a junior bank economist does by hand in the hour
+after the embargo lifts.**
+
+Reinhard Laaks, University of Pretoria.
 
 ![Generated CPI briefing for July 2026](docs/screenshot-cpi.png)
 
@@ -77,11 +82,20 @@ Rscript -e 'install.packages("renv"); renv::restore()'
 ./sa-brief cpi --period 2026-07
 ```
 
-Tests (they run the readers against the cached release files and the
-known-good release values):
+Tests run **offline** against small committed fixtures — cloning this repo
+never downloads from, or repeatedly hits, a government statistics server:
 
 ```bash
 Rscript -e 'testthat::test_dir("tests")'
+```
+
+The fixtures are derived extracts preserving the real published values the
+assertions check (regenerate with `Rscript data-raw/make-fixtures.R`). A
+separate opt-in suite verifies the live site still serves what the pipeline
+expects:
+
+```bash
+SA_BRIEF_LIVE_TESTS=true Rscript -e 'testthat::test_dir("tests")'
 ```
 
 A `targets` pipeline (`_targets.R`) rebuilds all four briefs:
@@ -111,7 +125,17 @@ and every judgement call:
 [docs/DECISIONS.md](docs/DECISIONS.md),
 [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
 
-Known limitations: the QLFS parser is landmark-based over PDF text and would
+### Status and honest limitations
+
+Every figure the tests assert has been checked against Stats SA's published
+values, but **each release type has so far been validated against a single
+period** (July 2026 CPI, June 2026 PPI, Q1 2026 GDP, Q2 2026 QLFS). The
+scheduled watcher has been verified end to end by simulating a new release;
+it has not yet lived through an actual Stats SA publication transition. Treat
+"works on release day" as a design claim backed by tests, not as an observed
+year of production use.
+
+Other limitations: the QLFS parser is landmark-based over PDF text and would
 need re-anchoring if Stats SA redesigns the tables; probe-based discovery
 depends on a list of naming variants observed in Stats SA's own links, and a
 genuinely new shape fails loudly with the probed candidates listed rather
@@ -133,7 +157,9 @@ publication dates move within the month:
 ./deploy/install-schedule.sh uninstall
 ```
 
-It runs on weekdays at 09:05, 10:05, 11:40 and 13:05 SAST, straddling the
+On macOS this installs a launchd user agent; on Linux, cron entries. (On
+Windows, point Task Scheduler at `deploy/watch.sh` via WSL or call
+`sa-brief watch` directly.) It runs on weekdays at 09:05, 10:05, 11:40 and 13:05 SAST, straddling the
 10:00 (CPI) and 11:30 (PPI, GDP, QLFS) embargoes. Each pass asks one
 question per release — *is the newest completed period still unbuilt, and is
 its file on the server?* — then builds only that. It is idempotent, so extra

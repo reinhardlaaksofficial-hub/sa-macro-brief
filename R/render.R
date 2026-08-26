@@ -100,17 +100,41 @@ payload_cpi <- function(t, root = here::here()) {
        attribution = ATTRIBUTION)
 }
 
-#' Locate the Quarto binary: PATH first, then the RStudio-bundled copy.
+#' Locate the Quarto binary: an explicit QUARTO_PATH, then PATH, then the
+#' copy bundled with RStudio on each platform. Many users have Quarto only
+#' via RStudio and no standalone install.
+quarto_candidates <- function() {
+  c(
+    # macOS
+    "/Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto",
+    "/Applications/RStudio.app/Contents/MacOS/quarto/bin/quarto",
+    "/usr/local/bin/quarto", "/opt/homebrew/bin/quarto",
+    # Linux
+    "/usr/lib/rstudio/resources/app/bin/quarto/bin/quarto",
+    "/usr/lib/rstudio/bin/quarto/bin/quarto",
+    "/usr/lib/rstudio-server/bin/quarto/bin/quarto",
+    "/opt/quarto/bin/quarto", "/usr/bin/quarto",
+    # Windows
+    file.path(Sys.getenv("LOCALAPPDATA", ""), "Programs", "Quarto", "bin", "quarto.exe"),
+    "C:/Program Files/RStudio/resources/app/bin/quarto/bin/quarto.exe",
+    "C:/Program Files/Quarto/bin/quarto.exe"
+  )
+}
+
 ensure_quarto <- function() {
   if (nzchar(Sys.getenv("QUARTO_PATH"))) return(invisible(TRUE))
   found <- Sys.which("quarto")
   if (nzchar(found)) return(invisible(TRUE))
-  bundled <- "/Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto"
-  if (file.exists(bundled)) {
-    Sys.setenv(QUARTO_PATH = bundled)
-    return(invisible(TRUE))
+  for (cand in quarto_candidates()) {
+    if (nzchar(cand) && file.exists(cand)) {
+      Sys.setenv(QUARTO_PATH = cand)
+      return(invisible(TRUE))
+    }
   }
-  stop("Quarto CLI not found; install Quarto or set QUARTO_PATH", call. = FALSE)
+  stop("Quarto CLI not found. Install it from https://quarto.org/docs/download/ ",
+       "or set QUARTO_PATH to the binary. Searched PATH and: ",
+       paste(Filter(nzchar, quarto_candidates()), collapse = ", "),
+       call. = FALSE)
 }
 
 #' Render a payload to output/{release}_{period}.pdf. Deterministic: the PDF

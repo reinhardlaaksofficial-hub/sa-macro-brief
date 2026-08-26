@@ -61,9 +61,9 @@ test_that("a cached mirror copy is never reused for discovery pages", {
 })
 
 test_that("probe discovery resolves the live GDP artefact to its _v2 correction", {
-  hit <- tryCatch(discover_by_probe("gdp", "2026Q1", "main"),
-                  error = function(e) NULL)
-  skip_if(is.null(hit), "statssa.gov.za not reachable from this network")
+  skip_unless_live()
+  hit <- discover_by_probe("gdp", "2026Q1", "main")
+  expect_false(is.null(hit))
   expect_match(hit$filename, "_v2\\.xlsx$")
   expect_equal(hit$version, 2L)
 })
@@ -80,6 +80,7 @@ test_that("embargo waiting applies to a period due now, not to a back-run", {
 })
 
 test_that("the embargo retry loop backs off and gives up at its deadline", {
+  skip_unless_live()
   hit <- tryCatch(discover_by_probe("cpi", "2026-08", "coicop", wait_minutes = 0),
                   error = function(e) NULL)
   skip_if(!is.null(hit), "August 2026 CPI has since been published")
