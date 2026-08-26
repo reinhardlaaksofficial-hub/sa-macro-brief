@@ -15,7 +15,9 @@ read_hcode <- function(path, sheet = 1, expected_meta = NULL) {
   wide <- readxl::read_excel(path, sheet = sheet, col_types = "text",
                              .name_repair = "minimal")
   meta_cols <- names(wide)[grepl("^H\\d{2}$", names(wide))]
-  period_cols <- setdiff(names(wide), meta_cols)
+  # positional, NOT setdiff: duplicate column labels must survive (the GDP
+  # Q1 2026 workbook carries a duplicated "201803" label)
+  period_cols <- names(wide)[!names(wide) %in% meta_cols]
 
   if (!is.null(expected_meta)) {
     if (!setequal(meta_cols, expected_meta)) {
@@ -36,16 +38,38 @@ read_hcode <- function(path, sheet = 1, expected_meta = NULL) {
          basename(path), ": ", paste(utils::head(bad, 5), collapse = ", "),
          call. = FALSE)
   }
+  # Repair a known Stats SA labelling defect: a period column duplicated while
+  # its immediate successor is missing (the GDP Q1 2026 workbook labels the
+  # 2018Q4 column "201803"). Only this exact, provable pattern is repaired —
+  # the duplicate's position must be directly after the original and the
+  # successor period absent; anything else still aborts on the duplicate check.
+  dup_i <- which(duplicated(parsed$period))
+  for (i in dup_i) {
+    successor <- period_next(parsed$period[i])
+    if (i > 1 && parsed$period[i - 1] == parsed$period[i] &&
+        !successor %in% parsed$period) {
+      message("Repairing mislabelled period column in ", basename(path), ": ",
+              "second '", period_cols[i], "' at position ", i,
+              " read as ", successor, " (see docs/OPEN_QUESTIONS.md)")
+      fixed <- parse_period(successor)
+      parsed$period[i] <- fixed$period
+      parsed$date[i] <- fixed$date
+      parsed$freq[i] <- fixed$freq
+    }
+  }
 
-  long <- tidyr::pivot_longer(wide, cols = dplyr::all_of(period_cols),
-                              names_to = "period_raw", values_to = "value_raw")
-  key <- match(long$period_raw, period_cols)
-  long$period <- parsed$period[key]
+  # rename period columns to their canonical period ids BEFORE pivoting:
+  # mapping by original column name would silently collapse duplicate labels
+  pos <- which(!names(wide) %in% meta_cols)
+  names(wide)[pos] <- parsed$period   # handles repeated original names too
+  long <- tidyr::pivot_longer(wide, cols = dplyr::all_of(pos),
+                              names_to = "period", values_to = "value_raw")
+  key <- match(long$period, parsed$period)
   long$date <- parsed$date[key]
   long$freq <- parsed$freq[key]
   long$value <- parse_number(long$value_raw)
   long$series_code <- long$H03
-  dplyr::select(long, -period_raw, -value_raw)
+  dplyr::select(long, -value_raw)
 }
 
 #' Deduplicate series that appear in more than one H04 presentation block

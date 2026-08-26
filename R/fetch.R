@@ -74,8 +74,11 @@ fetch_url <- function(url, dest, cfg = sa_config()) {
     throttle(cfg$fetch$min_delay_seconds)
     src <- "wayback"
     resp <- httr2::req_perform(sa_request(wayback_url(url), cfg))
-    if (httr2::resp_status(resp) >= 400) {
-      stop("Fetch failed from both Stats SA and the Internet Archive: ", url, call. = FALSE)
+    if (httr2::resp_status(resp) >= 400 ||
+        is_challenge_page(httr2::resp_body_raw(resp))) {
+      stop("Fetch failed from both Stats SA and the Internet Archive ",
+           "(direct access blocked and no clean archived copy): ", url,
+           call. = FALSE)
     }
   }
   dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
@@ -262,9 +265,11 @@ read_vintage <- function(paths, release, root = here::here()) {
   paths <- unlist(paths[names(paths) != "vintage"])
   metas <- list()
   for (p in paths) {
-    # the sidecar sits next to the original artefact (zip, not extracted file)
+    # the sidecar sits next to the original artefact; for extracted files the
+    # zip's sidecar is one or two directory levels up
     candidates <- c(paste0(p, ".vintage.yaml"),
-                    paste0(dirname(p), ".zip.vintage.yaml"))
+                    paste0(dirname(p), ".zip.vintage.yaml"),
+                    paste0(dirname(dirname(p)), ".zip.vintage.yaml"))
     m <- candidates[file.exists(candidates)][1]
     if (!is.na(m)) metas[[basename(p)]] <- yaml::read_yaml(m)
   }

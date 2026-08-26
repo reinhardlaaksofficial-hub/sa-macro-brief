@@ -44,3 +44,5 @@ gdp:
     finance_real_estate_business: "QRS1008"
     general_government: "QRS1009"
     personal_services: "QRS1010"
+  value_added_total: "QRS1011"       # Value added at basic prices (total)
+  taxes_less_subsidies: "QRS1012"    # Taxes less subsidies on products

@@ -72,6 +72,34 @@ decimal commas and thin-space thousands (matching Stats SA releases); code and
 intermediate data keep R's decimal points. The mixed style in early drafts was
 rejected for consistency with §6's one-symbol-one-meaning rule.
 
+## Stage 5 — PPI, GDP, QLFS
+
+**GDP y/y convention.** The headline is q/q seasonally adjusted, not
+annualised, from `QRS1000` (per §6). The supplementary y/y figure is computed
+from `QRU1000` (constant prices, actual values) because year-on-year
+comparisons belong on unadjusted data — computing y/y on seasonally adjusted
+levels would double-filter the seasonality.
+
+**GDP contributions.** Contribution of industry i is
+100·ΔX_i/GDP_{t-1} on seasonally adjusted annualised constant-price levels
+(the annualisation scalar cancels). Industries plus taxes-less-subsidies must
+reconcile to the headline within 0,06 pp or the run aborts; on Q1 2026 the
+sum matches the headline exactly (0,545 vs 0,545).
+
+**Repairing vs rejecting the mislabelled GDP column.** A duplicated `201803`
+header with no `201804` is repaired positionally (with a logged message)
+because the evidence is decisive and dropping it would delete 2018Q4 from
+every series; any duplicate that does not match this exact pattern still
+aborts. See OPEN_QUESTIONS.md for the evidence.
+
+**QLFS parsing strategy.** Row labels are matched from a fixed list in
+published order rather than inferred, because Table A's blocks change meaning
+by position (levels in thousands, rates in %, changes in pp despite the %
+header). Wrapped labels (LU2/LU3) are handled by taking the numeric line
+that follows a number-free label line. Identities (employed + unemployed =
+labour force; labour force + outside = working-age population) are asserted
+with a 3-thousand rounding tolerance before any output is produced.
+
 **Quarto binary.** The machine has no standalone Quarto; the pipeline uses the
 Quarto 1.8.25 bundled with RStudio via the `QUARTO_PATH` environment variable
 set in `sa-brief`. Installing a second Quarto via Homebrew was rejected as

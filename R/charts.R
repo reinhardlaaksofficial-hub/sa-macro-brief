@@ -149,8 +149,9 @@ chart_qlfs_rates <- function(t) {
     ggplot2::geom_text(data = ends, ggplot2::aes(label = series),
                        colour = c(LU1 = BRIEF_ACCENT, LU3 = BRIEF_INK)[ends$series],
                        hjust = -0.15, size = 2.6) +
-    ggplot2::scale_x_date(expand = ggplot2::expansion(mult = c(0.01, 0.1)),
-                          date_labels = "%Y") +
+    ggplot2::scale_x_date(expand = ggplot2::expansion(mult = c(0.02, 0.1)),
+                          labels = function(d) sprintf("%dQ%d", lubridate::year(d),
+                                                       lubridate::quarter(d))) +
     ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%")) +
     ggplot2::labs(title = "Labour underutilisation",
                   subtitle = "LU1 (unemployment rate) and LU3 (unemployment + potential labour force)",
@@ -177,4 +178,19 @@ chart_qlfs_employment <- function(t) {
     theme_brief() +
     ggplot2::theme(panel.grid.major.y = ggplot2::element_blank(),
                    axis.text.y = ggplot2::element_text(colour = BRIEF_INK, size = 6.6))
+}
+
+#' PPI m/m over the trailing 24 months, bars.
+chart_ppi_mm <- function(t) {
+  h <- t$mm_history
+  ggplot2::ggplot(h, ggplot2::aes(date, mm, fill = mm >= 0)) +
+    ggplot2::geom_col(width = 20) +
+    ggplot2::geom_hline(yintercept = 0, colour = BRIEF_GREY, linewidth = 0.3) +
+    ggplot2::scale_fill_manual(values = c(`TRUE` = BRIEF_ACCENT, `FALSE` = BRIEF_GREY)) +
+    ggplot2::scale_y_continuous(labels = function(x) paste0(x, "%")) +
+    ggplot2::scale_x_date(date_labels = "%b %y") +
+    ggplot2::labs(title = "PPI, m/m",
+                  subtitle = "Final manufactured goods, per cent",
+                  caption = source_caption("P0142.1, PPC30000", t$vintage[[1]]$retrieved_at)) +
+    theme_brief()
 }

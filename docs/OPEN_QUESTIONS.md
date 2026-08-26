@@ -38,6 +38,25 @@ verified, the chosen interpretation is recorded here with the evidence.
   the site trusts, the current file is fetched and breadth extends
   automatically. A failing test named `breadth series reaches the CPI
   reference month (needs 202607 8-digit vintage)` marks the gap.
+## Stage 5 — readers for PPI, GDP, QLFS
+
+- **The GDP Q1 2026 workbook has a mislabelled period column.** In sheet
+  `Quarterly` of `GDP P0441 - GDP Time series Q1 2026_v2.xlsx`, the header row
+  contains `201803` twice and no `201804` (columns 113-114 of the sheet).
+  The brief (§4) does not mention this. Evidence that the second `201803` is
+  really 2018Q4: agriculture's current-price actual (`QNU1001`) shows its
+  regular Q4 seasonal trough there (13 866,6, vs 16 485,6 in 2017Q4 and
+  13 595,5 in 2019Q4). `read_hcode()` repairs exactly this pattern — a
+  duplicated column whose immediate successor period is missing — logs the
+  repair, and still aborts on any other duplicate. Chosen over dropping the
+  column (which would silently delete a quarter of history).
+- **QLFS LU-rate history is short by construction.** The brief asks for LU1
+  and LU3 over five years, but LU3 has existed only since the Q3:2025
+  questionnaire revision, and the QLFS is published as PDF (each release
+  carries three period columns). The pipeline accumulates rate observations
+  from every parsed release into `data/vintages/qlfs_rates.csv`, so the chart
+  lengthens as releases (or cached back-issues) are processed. With one cached
+  PDF the chart shows Q2 2025, Q1 2026 and Q2 2026.
 - **CPI reference period lags its release**: June 2026 CPI was published
   22 July 2026; the July 2026 CPI files (`202607`) appeared in August. The
   `release_calendar.yaml` known-dates list records only page-verified dates.
