@@ -3,6 +3,42 @@
 Where the brief and the actual files disagreed, or a fact could not be
 verified, the chosen interpretation is recorded here with the evidence.
 
+## Final run summary — 2026-08-26
+
+**Passed.**
+- `testthat::test_dir("tests")`: **131 passing** across parsers, fetch layer,
+  all four readers, analytics and identities — including every known-good
+  release value in the brief (CPI 107,7 / 4,3 / 0,2 / core 4,2; PPI 110,3 /
+  7,5 / −0,1; GDP 4 772 090,6 / 0,5 / 0,4 / finance 0,2 pp / manufacturing
+  −0,1 pp; QLFS 33,6 / 43,8 / 39,6 / 59,6 / 16 739).
+- CLI end-to-end for all four releases: `cpi --period 2026-07`,
+  `ppi --period 2026-06`, `gdp --period 2026Q1`, `qlfs --period 2026Q2`
+  each produce a one-page PDF in `output/`; `calendar` prints the rhythm.
+- Idempotence: two consecutive CPI runs hash byte-identical.
+- CPI division contributions reconcile against the release PDF's Table C
+  (every published division within 0,05 pp).
+
+**Failing, deliberately.**
+- 1 test: *"breadth series reaches the CPI reference month (needs 202607
+  8-digit vintage)"* — names the single data gap below.
+
+**Needs your attention.**
+1. **Run one `--refresh` from a network Stats SA trusts.** This machine's
+   traffic was challenged by the site's Imperva layer (a human-verification
+   check I do not automate), so all cached inputs came via the Internet
+   Archive — contents verified against the brief's ground truth. From your
+   own connection, `./sa-brief cpi --period 2026-07 --refresh` should fetch
+   directly, pull the current 8-digit vintage (extending the breadth series
+   to July 2026 and turning the failing test green), and flip the footer
+   provenance from "Internet Archive mirror" to Stats SA.
+2. The PPI and QLFS `SCH` ids in `config/sources.yaml` are intentionally
+   null — they are per-release ids and are discovered at run time; nothing
+   to do unless discovery ever fails.
+3. When the GDP 2022-base rebasing lands, the reader's `Concordance (Q)`
+   mapping and the base/basis assertions are the intended failure point:
+   the run will abort with named checks rather than mixing bases; update
+   `series_codes.yaml`/`series_breaks.yaml` from the concordance then.
+
 ## Unresolved at project start
 
 - **`SCH` ids for PPI and QLFS** are unknown; the fetch layer discovers the

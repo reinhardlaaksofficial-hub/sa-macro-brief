@@ -13,6 +13,8 @@ args_full <- commandArgs(trailingOnly = FALSE)
 script_path <- sub("^--file=", "", grep("^--file=", args_full, value = TRUE)[1])
 project_root <- normalizePath(dirname(script_path))
 setwd(project_root)
+Sys.setenv(RENV_CONFIG_STARTUP_QUIET = "TRUE",
+           RENV_CONFIG_NAMESPACES_CHECK = "FALSE")
 source(file.path(project_root, "renv", "activate.R"))
 
 suppressPackageStartupMessages({
