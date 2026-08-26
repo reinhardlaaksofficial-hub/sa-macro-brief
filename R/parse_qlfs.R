@@ -197,9 +197,9 @@ assert_qlfs_cover <- function(txt, period) {
 }
 
 #' Fetch and parse the QLFS for one quarter.
-load_qlfs <- function(period, refresh = FALSE, root = here::here()) {
+load_qlfs <- function(period, refresh = FALSE, root = here::here(), wait = NULL) {
   p <- parse_period_one(period)
-  paths <- fetch_release("qlfs", period, refresh = refresh, root = root)
+  paths <- fetch_release("qlfs", period, refresh = refresh, root = root, wait = wait)
   txt <- pdftools::pdf_text(paths$main)
   assert_qlfs_cover(txt, p$period)
 

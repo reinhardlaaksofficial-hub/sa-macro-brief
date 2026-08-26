@@ -78,8 +78,8 @@ read_cpi_products <- function(path) {
 }
 
 #' Fetch and read everything needed for a CPI briefing period.
-load_cpi <- function(period, refresh = FALSE, root = here::here()) {
-  paths <- fetch_release("cpi", period, refresh = refresh, root = root)
+load_cpi <- function(period, refresh = FALSE, root = here::here(), wait = NULL) {
+  paths <- fetch_release("cpi", period, refresh = refresh, root = root, wait = wait)
   coicop <- read_cpi_coicop(paths$coicop, period = period, root = root)
   products <- read_cpi_products(paths$digit8)
   list(coicop = coicop, products = products, vintage = paths$vintage)

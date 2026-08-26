@@ -67,3 +67,27 @@ test_that("probe discovery resolves the live GDP artefact to its _v2 correction"
   expect_match(hit$filename, "_v2\\.xlsx$")
   expect_equal(hit$version, 2L)
 })
+
+test_that("embargo waiting applies to a period due now, not to a back-run", {
+  # CPI July 2026 was published in August 2026: current as at 26 Aug 2026
+  expect_true(period_is_current("2026-07", as.Date("2026-08-26")))
+  # GDP Q1 2026 was published 9 June 2026, ~70 days after quarter end
+  expect_true(period_is_current("2026Q1", as.Date("2026-06-09")))
+  # an old period is a back-run: a 404 means "never existed", so fail fast
+  expect_false(period_is_current("2019-03", as.Date("2026-08-26")))
+  # a period that has barely started is not yet publishable
+  expect_false(period_is_current("2027-06", as.Date("2026-08-26")))
+})
+
+test_that("the embargo retry loop backs off and gives up at its deadline", {
+  hit <- tryCatch(discover_by_probe("cpi", "2026-08", "coicop", wait_minutes = 0),
+                  error = function(e) NULL)
+  skip_if(!is.null(hit), "August 2026 CPI has since been published")
+  t0 <- Sys.time()
+  expect_message(
+    res <- discover_by_probe("cpi", "2026-08", "coicop", wait_minutes = 0.15),
+    "not on the server yet")
+  expect_null(res)
+  # it actually waited rather than returning instantly
+  expect_gt(as.numeric(difftime(Sys.time(), t0, units = "secs")), 4)
+})

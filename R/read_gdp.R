@@ -59,8 +59,8 @@ read_gdp_concordance <- function(path) {
   cc
 }
 
-load_gdp <- function(period, refresh = FALSE, root = here::here()) {
-  paths <- fetch_release("gdp", period, refresh = refresh, root = root)
+load_gdp <- function(period, refresh = FALSE, root = here::here(), wait = NULL) {
+  paths <- fetch_release("gdp", period, refresh = refresh, root = root, wait = wait)
   long <- read_gdp_file(paths$main, period = period, root = root)
   concordance <- read_gdp_concordance(paths$main)
   list(gdp = long, concordance = concordance, vintage = paths$vintage)

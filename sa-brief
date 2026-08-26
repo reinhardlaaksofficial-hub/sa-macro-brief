@@ -50,7 +50,10 @@ opt <- parse_args(
     make_option("--period", type = "character", default = NULL,
                 help = "Reference period: YYYY-MM (cpi, ppi) or YYYYQn (gdp, qlfs)"),
     make_option("--refresh", action = "store_true", default = FALSE,
-                help = "Bypass the data-raw cache and re-fetch")
+                help = "Bypass the data-raw cache and re-fetch"),
+    make_option("--wait", type = "integer", default = NULL,
+                help = paste("Minutes to keep retrying while the release lands",
+                             "(default: 5 for a period due now, 0 for a back-run)"))
   )),
   args = argv[-1]
 )
@@ -62,23 +65,23 @@ if (is.null(opt$period)) stop("--period is required", call. = FALSE)
 
 payload <- switch(command,
   cpi = {
-    d <- load_cpi(opt$period, refresh = opt$refresh, root = project_root)
+    d <- load_cpi(opt$period, refresh = opt$refresh, root = project_root, wait = opt$wait)
     t <- transform_cpi(d, opt$period, root = project_root)
     t <- add_cpi_analytics(t, d, root = project_root)
     payload_cpi(t, root = project_root)
   },
   ppi = {
-    d <- load_ppi(opt$period, refresh = opt$refresh, root = project_root)
+    d <- load_ppi(opt$period, refresh = opt$refresh, root = project_root, wait = opt$wait)
     t <- transform_ppi(d, opt$period, root = project_root)
     payload_ppi(t, root = project_root)
   },
   gdp = {
-    d <- load_gdp(opt$period, refresh = opt$refresh, root = project_root)
+    d <- load_gdp(opt$period, refresh = opt$refresh, root = project_root, wait = opt$wait)
     t <- transform_gdp(d, opt$period, root = project_root)
     payload_gdp(t, root = project_root)
   },
   qlfs = {
-    d <- load_qlfs(opt$period, refresh = opt$refresh, root = project_root)
+    d <- load_qlfs(opt$period, refresh = opt$refresh, root = project_root, wait = opt$wait)
     t <- transform_qlfs(d, opt$period, root = project_root)
     payload_qlfs(t, root = project_root)
   }

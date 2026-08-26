@@ -265,9 +265,49 @@ probe_exists <- function(path, cfg = sa_config()) {
   !grepl("text/html", ct, fixed = TRUE)
 }
 
+#' Is this reference period recent enough that its release could be landing
+#' right now? Used to decide whether a missing artefact means "not published
+#' yet, wait" or "this never existed, fail fast".
+period_is_current <- function(period, now = Sys.Date()) {
+  p <- parse_period_one(period)
+  period_end <- if (p$freq == "monthly") {
+    seq(p$date, by = "month", length.out = 2)[2] - 1
+  } else {
+    seq(p$date, by = "3 months", length.out = 2)[2] - 1
+  }
+  # CPI publishes ~3 weeks after month end, GDP ~10 weeks after quarter end;
+  # 120 days covers both with margin, and excludes back-runs of old periods
+  as.numeric(now - period_end) <= 120 && now >= period_end - 7
+}
+
 #' Rung B: resolve one artefact to a live URL by probing known variants.
+#'
+#' On release day the file can 404 for a few minutes after the embargo lifts
+#' while the CDN catches up. When `wait_minutes > 0` the probe cycle repeats
+#' with backoff until the deadline before giving up, so a run fired at
+#' 10:00:00 sharp does not fail on a cache lag.
 #' Returns list(href, filename, version) or NULL when nothing exists.
-discover_by_probe <- function(release, period, artefact, cfg = sa_config()) {
+discover_by_probe <- function(release, period, artefact, cfg = sa_config(),
+                              wait_minutes = 0) {
+  deadline <- Sys.time() + wait_minutes * 60
+  attempt <- 0L
+  repeat {
+    hit <- probe_candidates(release, period, artefact, cfg)
+    if (!is.null(hit)) return(hit)
+    if (Sys.time() >= deadline) return(NULL)
+    attempt <- attempt + 1L
+    pause <- min(30, 5 * attempt)
+    remaining <- as.numeric(difftime(deadline, Sys.time(), units = "secs"))
+    if (remaining <= 0) return(NULL)
+    message(sprintf(
+      "%s %s not on the server yet (attempt %d); waiting %ds for CDN propagation, %.0fs of embargo window left.",
+      release, period, attempt, pause, remaining))
+    Sys.sleep(min(pause, remaining))
+  }
+}
+
+#' One pass over the candidate list.
+probe_candidates <- function(release, period, artefact, cfg = sa_config()) {
   for (path in candidate_paths(release, period, artefact)) {
     if (probe_exists(path, cfg)) {
       v <- stringr::str_match(path, "_v(\\d+)\\.")[, 2]
@@ -307,8 +347,13 @@ find_cached_artifact <- function(release, pattern, period_tag = NULL, root = her
 #' GDP "Qn YYYY" in the xlsx name; QLFS "{N}{st|nd|rd|th}Quarter{YYYY}".
 #' Returns a named list of local paths plus the vintage metadata.
 fetch_release <- function(release, period, refresh = FALSE,
-                          root = here::here(), cfg = sa_config()) {
+                          root = here::here(), cfg = sa_config(),
+                          wait = NULL) {
   p <- parse_period_one(period)
+  # Wait out the embargo/CDN lag only when this period's release is plausibly
+  # landing now; a back-run of an old period should fail fast on a 404.
+  wait_minutes <- if (!is.null(wait)) wait else
+    if (period_is_current(period)) (cfg$fetch$embargo_retry_minutes %||% 0) else 0
   patterns <- switch(release,
     cpi = list(
       coicop = "CPI\\(COICOP\\) from Jan 2008.*\\.zip$",
@@ -364,8 +409,11 @@ fetch_release <- function(release, period, refresh = FALSE,
         }
       }
       if (is.null(link)) {
-        # Rung B: probe known filename variants; the server confirms which exists.
-        link <- discover_by_probe(release, period, nm, cfg)
+        # Rung B: probe known filename variants; the server confirms which
+        # exists. For a period whose release is due now, keep probing through
+        # the embargo window rather than failing on a CDN lag.
+        link <- discover_by_probe(release, period, nm, cfg,
+                                  wait_minutes = wait_minutes)
         strategy <- "probe_verified"
       }
       if (is.null(link)) {

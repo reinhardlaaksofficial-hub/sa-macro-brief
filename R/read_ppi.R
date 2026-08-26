@@ -25,8 +25,8 @@ read_ppi_file <- function(path, period = NULL, root = here::here()) {
 #' Fetch and read everything needed for a PPI briefing period. The CPI COICOP
 #' series rides along for the PPI-vs-CPI overlay chart (any cached CPI vintage
 #' covering the PPI period suffices; CPI is published before PPI each month).
-load_ppi <- function(period, refresh = FALSE, root = here::here()) {
-  paths <- fetch_release("ppi", period, refresh = refresh, root = root)
+load_ppi <- function(period, refresh = FALSE, root = here::here(), wait = NULL) {
+  paths <- fetch_release("ppi", period, refresh = refresh, root = root, wait = wait)
   ppi <- read_ppi_file(paths$main, period = period, root = root)
   cpi_zip <- find_cached_artifact("cpi", "CPI\\(COICOP\\) from Jan 2008.*\\.zip$",
                                   NULL, root)
