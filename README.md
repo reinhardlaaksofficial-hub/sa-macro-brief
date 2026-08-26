@@ -121,3 +121,35 @@ than silently; LU3 history begins Q3:2025 by construction.
 wish, provided they acknowledge Stats SA as the source of the basic data, and
 specify that the relevant application and analysis result from their own
 processing of the data.*
+
+## Scheduled operation
+
+The watcher polls rather than firing at a fixed instant, because Stats SA's
+publication dates move within the month:
+
+```bash
+./deploy/install-schedule.sh install    # user launchd agent, no sudo
+./deploy/install-schedule.sh status
+./deploy/install-schedule.sh uninstall
+```
+
+It runs on weekdays at 09:05, 10:05, 11:40 and 13:05 SAST, straddling the
+10:00 (CPI) and 11:30 (PPI, GDP, QLFS) embargoes. Each pass asks one
+question per release — *is the newest completed period still unbuilt, and is
+its file on the server?* — then builds only that. It is idempotent, so extra
+polls cost four HEAD requests and nothing else. Results append to
+`output/logs/watch.log`. Run `./sa-brief watch --dry-run` to see what it
+would do without fetching.
+
+Note that Stats SA keeps only the **current** vintage of the CPI/PPI
+timeseries files: last month's zip is already a 404. Missing a release day
+means that vintage is gone from the live site, which is why the watcher polls
+through the embargo window and why the archive fallback is retained.
+
+## Notifications
+
+Off by default. `config/notify.yaml` enables Slack (an incoming webhook, with
+the URL read from an environment variable so no secret enters the repo) and
+email (handed to a mail command you configure, so authentication stays
+yours). When enabled, a completed brief posts its headline figures and first
+commentary line.

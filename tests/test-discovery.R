@@ -91,3 +91,23 @@ test_that("the embargo retry loop backs off and gives up at its deadline", {
   # it actually waited rather than returning instantly
   expect_gt(as.numeric(difftime(Sys.time(), t0, units = "secs")), 4)
 })
+
+test_that("recent_periods returns completed periods, newest first", {
+  m <- recent_periods("monthly", 3, as.Date("2026-08-26"))
+  expect_equal(m, c("2026-07", "2026-06", "2026-05"))
+  q <- recent_periods("quarterly", 3, as.Date("2026-08-26"))
+  expect_equal(q, c("2026Q2", "2026Q1", "2025Q4"))
+  # a period only becomes a candidate once it has ended
+  expect_false("2026-08" %in% m)
+})
+
+test_that("the watcher treats only the newest period as new information", {
+  root <- withr::local_tempdir()
+  dir.create(file.path(root, "output"), recursive = TRUE)
+  # newest quarter already built => nothing new, even with older gaps
+  file.create(file.path(root, "output", "qlfs_2026Q2.pdf"))
+  expect_true(brief_exists("qlfs", "2026Q2", root))
+  expect_false(brief_exists("qlfs", "2026Q1", root))
+  res <- watch_once("qlfs", root = root, dry_run = TRUE, now = as.Date("2026-08-26"))
+  expect_equal(res$status, "up_to_date")
+})

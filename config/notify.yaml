@@ -1,0 +1,24 @@
+# Notifications for the scheduled watcher. Disabled by default: with
+# enabled: false the watcher writes its PDF to output/ and says nothing.
+#
+# NO CREDENTIALS IN THIS FILE. The Slack webhook URL is read from the
+# environment variable named below, and the email path shells out to a mail
+# command that owns its own authentication.
+notify:
+  enabled: false
+
+  slack:
+    enabled: false
+    # Create an incoming webhook in Slack, then put the URL in this env var
+    # (e.g. in ~/.zshrc, or in the launchd plist's EnvironmentVariables):
+    #   export SA_BRIEF_SLACK_WEBHOOK="https://hooks.slack.com/services/..."
+    slack_webhook_env: SA_BRIEF_SLACK_WEBHOOK
+
+  email:
+    enabled: false
+    to: ""
+    # Any command that reads the body on stdin. Placeholders {to}, {subject}
+    # and {attachment} are substituted. Examples:
+    #   mailx:  mailx -s {subject} -a {attachment} {to}
+    #   msmtp:  msmtp --read-envelope-from -t {to}
+    command: ""
