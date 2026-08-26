@@ -1,0 +1,8 @@
+# SARB inflation-targeting parameters. The target is the 3-6% band; since 2017
+# communication has been anchored on the 4.5% midpoint. Both are shown on charts.
+inflation_target:
+  lower: 3.0
+  upper: 6.0
+  midpoint: 4.5
+  authority: "South African Reserve Bank"
+  midpoint_anchored_since: 2017

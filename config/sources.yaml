@@ -1,0 +1,42 @@
+# Canonical Stats SA entry points. Filenames are NEVER constructed for
+# publication-page artefacts: the page is scraped and links are taken as-is
+# (files get re-versioned with _v2/_v3 suffixes after corrections).
+base_url: "https://www.statssa.gov.za"
+publication_page: "https://www.statssa.gov.za/?page_id=1854&PPN={PPN}&SCH={SCH}"
+timeseries_index: "https://www.statssa.gov.za/?page_id=1847"
+
+releases:
+  cpi:
+    ppn: "P0141"
+    sch: "74468"          # June 2026 release; later releases discovered via the index
+    frequency: monthly
+    embargo_time: "10:00"
+    primary_format: xlsx
+    timeseries_zips:      # patterns matched against scraped links, not constructed
+      - "CPI(COICOP) from Jan 2008"
+      - "CPI(5 and 8 digit) from Jan 2017"
+  ppi:
+    ppn: "P0142.1"
+    sch: null             # unknown at time of writing; discovered on first run
+    frequency: monthly
+    embargo_time: "11:30"
+    primary_format: xlsx
+    timeseries_zips:
+      - "PPI New series from 2013"
+  gdp:
+    ppn: "P0441"
+    sch: "74518"
+    frequency: quarterly
+    embargo_time: "11:00"
+    primary_format: xlsx
+  qlfs:
+    ppn: "P0211"
+    sch: null             # unknown at time of writing; discovered on first run
+    frequency: quarterly
+    primary_format: pdf
+
+fetch:
+  user_agent: "sa-macro-brief/0.1 (research pipeline; contact: 306564783+reinhardlaaksofficial-hub@users.noreply.github.com)"
+  min_delay_seconds: 1
+  max_retries: 5
+  embargo_retry_minutes: 5

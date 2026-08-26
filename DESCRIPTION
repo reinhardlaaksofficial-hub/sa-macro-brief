@@ -1,0 +1,15 @@
+Package: samacrobrief
+Title: South African Macro Release-Day Briefing Pipeline
+Version: 0.1.0
+Authors@R: person("Reinhard", "Laak", email = "306564783+reinhardlaaksofficial-hub@users.noreply.github.com", role = c("aut", "cre"))
+Description: Ingests Statistics South Africa statistical releases (CPI, PPI,
+    GDP, QLFS), computes standard analytical aggregates, and renders a
+    one-page PDF briefing note with charts. Basic data are sourced from
+    Statistics South Africa; all applications and analysis result from our
+    own processing of the data.
+License: MIT
+Encoding: UTF-8
+Depends: R (>= 4.3)
+Imports:
+    readxl, pdftools, rvest, httr2, dplyr, tidyr, stringr, lubridate,
+    ggplot2, yaml, here, targets, testthat, quarto, optparse, zip

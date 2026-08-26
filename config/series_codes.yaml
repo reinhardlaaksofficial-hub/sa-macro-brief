@@ -1,0 +1,46 @@
+# The project's contract with Stats SA: every H03 series code the pipeline
+# depends on. Key on these codes, never on labels — labels change across
+# classification revisions, codes do not. If a code disappears from a file,
+# the run aborts with a named assertion rather than continuing silently.
+cpi:
+  headline: "CPS00000"        # CPI Headline, All urban areas
+  total_country: "CPI60001"   # CPI Headline, total country
+  rural: "CPI60051"           # CPI Headline, rural areas
+  pensioners: "CPI60065"      # CPI for pensioners
+  core: "CPS59200"            # CPI excl. food & NAB, fuel and energy (discovered
+                              # from the COICOP file; label-verified at read time)
+  provinces:
+    western_cape: "CPI61001"  # provinces run CPI61001-CPI69001
+  divisions:                  # COICOP 2018 divisions, all urban areas
+    # populated at read time from H04 blocks; codes asserted present:
+    food_nab: "CPS01000"
+    alcohol_tobacco: "CPS02000"
+    clothing_footwear: "CPS03000"
+    housing_utilities: "CPS04000"
+    furnishings: "CPS05000"
+    health: "CPS06000"
+    transport: "CPS07000"
+    information_communication: "CPS08000"
+    recreation_culture: "CPS09000"
+    education: "CPS10000"
+    restaurants_accommodation: "CPS11000"
+    insurance_financial: "CPS12000"
+    personal_care_misc: "CPS13000"
+ppi:
+  headline: "PPC30000"        # PPI for final manufactured goods
+gdp:
+  headline_constant_saa: "QRS1000"   # GDP at market prices, constant 2015, sa & annualised
+  headline_constant_actual: "QRU1000"
+  headline_current_actual: "QNU1000"
+  headline_current_saa: "QNS1000"
+  industries_saa:             # constant 2015 prices, seasonally adjusted & annualised
+    agriculture: "QRS1001"
+    mining: "QRS1002"
+    manufacturing: "QRS1003"
+    electricity_gas_water: "QRS1004"
+    construction: "QRS1005"
+    trade_catering_accommodation: "QRS1006"
+    transport_communication: "QRS1007"
+    finance_real_estate_business: "QRS1008"
+    general_government: "QRS1009"
+    personal_services: "QRS1010"

@@ -1,0 +1,42 @@
+# Known structural breaks. Transformations must consult this file before
+# computing any statistic that spans a break.
+breaks:
+  - release: cpi
+    date: "2025-01"
+    kind: rebase_and_reweight
+    note: >
+      CPI rebased to Dec 2024 = 100 with updated weights and basket from the
+      January 2025 index (COICOP 2018 classification). Index levels are chained
+      by Stats SA; y/y and m/m rates remain valid across the break.
+  - release: ppi
+    date: "2024-01"
+    kind: rebase
+    note: >
+      PPI rebased to Dec 2023 = 100. Headline series PPC30000 is continuous.
+  - release: ppi
+    date: "2013-01"
+    kind: series_rebuild
+    note: >
+      PPI series rebuilt from 2013 (new series). No comparable history before
+      2013 in the new-series file; historical elementary indices live in a
+      separate file.
+  - release: qlfs
+    date: "2025Q3"
+    kind: methodology
+    scope: informality
+    note: >
+      Questionnaire revised for the 19th/20th/21st ICLS from Q3:2025.
+      "Not Economically Active" became "Outside the Labour Force"; "Potential
+      Labour Force" is new; formal/informal definitions changed materially.
+      Only Q3:2025 onward are mutually comparable for informality — earlier
+      informality comparisons are suppressed, not computed. Headline
+      employment and unemployment definitions are unchanged and continuous.
+  - release: gdp
+    date: null
+    kind: rebase_pending
+    note: >
+      GDP rebasing to a 2022 base year is pending later in 2026 (announced on
+      the Q1 2026 release cover; the 2023 Supply and Use Tables were withheld
+      because of it). When it lands, the Concordance (Q) sheet maps old to new
+      Stats SA codes and to SARB codes; read_gdp() loads it on every run so
+      the mapping is already in place.

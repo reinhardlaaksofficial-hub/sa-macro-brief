@@ -1,0 +1,9 @@
+data-raw/
+output/
+.Rproj.user/
+.Rhistory
+.RData
+.DS_Store
+inst/quarto/*_files/
+inst/quarto/*.tex
+_targets/

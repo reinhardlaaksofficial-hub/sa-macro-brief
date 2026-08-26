@@ -1,0 +1,21 @@
+# Approximate release rhythm; exact dates and times are printed on each
+# publication page. Embargo times are SAST.
+calendar:
+  cpi:
+    rule: "Wednesday in the third or fourth week of the following month, 10:00"
+  ppi:
+    rule: "Thursday following the CPI release, 11:30"
+  gdp:
+    rule: "Roughly ten weeks after quarter end, Tuesday, 11:30 (Q1 2026 published 11:00)"
+  qlfs:
+    rule: "Roughly six to eight weeks after quarter end, 11:30"
+known_dates:
+  - release: cpi
+    period: "2026-07"
+    published: "2026-08-19 10:00"
+  - release: gdp
+    period: "2026Q1"
+    published: "2026-06-09 11:00"
+  - release: qlfs
+    period: "2026Q2"
+    published: "2026-08-12 11:30"
