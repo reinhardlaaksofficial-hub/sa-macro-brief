@@ -3,15 +3,28 @@
 # re-fetches cached content unless refresh = TRUE.
 #
 # This layer only fetches and caches; it never parses file contents beyond the
-# post-download period check delegated to the caller. Filenames are never
-# constructed for publication-page artefacts: the page is scraped and links
-# are taken verbatim (files get re-versioned as _v2/_v3 after corrections).
+# post-download period check delegated to the caller.
 #
-# Mirror fallback: www.statssa.gov.za sits behind Imperva bot protection that
-# challenges non-browser clients on some networks. When the direct fetch is
-# blocked, fetch_url() falls back to the Internet Archive's copy of the same
-# URL (web.archive.org), and records which source served the bytes in the
-# vintage metadata. See docs/OPEN_QUESTIONS.md.
+# Artefact discovery uses a three-rung ladder, always against the live site
+# first, because release-day automation is the whole point of the tool:
+#
+#   A. scrape the publication page and take its links verbatim (canonical;
+#      what the brief specifies, and what runs when the page is reachable)
+#   B. probe-verified discovery: build the small set of known filename
+#      variants for the release and period, HEAD each against the live
+#      server, and take the one the server confirms exists, newest version
+#      first. This is not blind construction — nothing is assumed, the
+#      server adjudicates, a missing file is a 404 rather than a corrupt
+#      download, and re-versioning is detected rather than guessed
+#      (on Q1 2026 the un-suffixed GDP name is already 404: superseded).
+#   C. Internet Archive mirror of the same URL, last resort only.
+#
+# Rung B exists because Stats SA's Imperva layer challenges HTML requests
+# from some networks (every ?page_id= page and directory listing) while
+# serving the static data files - xlsx, zip, pdf - to the same client
+# without challenge. The tool must not be dead on those networks. The
+# strategy actually used is recorded in each artefact's vintage sidecar.
+# No bot check is ever bypassed or answered. See docs/OPEN_QUESTIONS.md.
 
 sa_config <- function(root = here::here()) {
   yaml::read_yaml(file.path(root, "config", "sources.yaml"))
@@ -54,12 +67,15 @@ is_challenge_page <- function(body_bytes) {
 
 #' Wayback fallback URL for a Stats SA URL ("if_" returns the original bytes).
 wayback_url <- function(url) {
-  paste0("https://web.archive.org/web/2026if_/", url)
+  # spaces and parentheses appear in Stats SA filenames; the archive URL must
+  # carry them percent-encoded or the HTTP client refuses to parse it
+  paste0("https://web.archive.org/web/2026if_/",
+         utils::URLencode(url, reserved = FALSE))
 }
 
 #' Fetch a URL to a local path. Returns a list(path, source, retrieved_at)
 #' or errors. `source` is "statssa" or "wayback".
-fetch_url <- function(url, dest, cfg = sa_config()) {
+fetch_url <- function(url, dest, cfg = sa_config(), allow_mirror = TRUE) {
   throttle(cfg$fetch$min_delay_seconds)
   src <- "statssa"
   resp <- tryCatch(
@@ -69,6 +85,12 @@ fetch_url <- function(url, dest, cfg = sa_config()) {
   blocked <- inherits(resp, "error") ||
     httr2::resp_status(resp) >= 400 ||
     is_challenge_page(httr2::resp_body_raw(resp))
+  if (blocked && !allow_mirror) {
+    # Discovery must never be served from a mirror: a stale copy of the
+    # publication page yields last month's links, which is worse than no
+    # links at all. The caller falls through to live probe discovery.
+    stop("live fetch unavailable for ", url, call. = FALSE)
+  }
   if (blocked) {
     message("Direct fetch blocked or failed for ", url, " - trying Internet Archive mirror")
     throttle(cfg$fetch$min_delay_seconds)
@@ -90,17 +112,23 @@ fetch_url <- function(url, dest, cfg = sa_config()) {
 #' .vintage.yaml recording url, retrieval time and source. Cached files are
 #' never re-fetched unless refresh = TRUE.
 fetch_cached <- function(url, release, filename = NULL, refresh = FALSE,
-                         root = here::here(), cfg = sa_config()) {
+                         root = here::here(), cfg = sa_config(),
+                         allow_mirror = TRUE) {
   if (is.null(filename)) filename <- utils::URLdecode(basename(url))
   dest <- file.path(root, "data-raw", release, filename)
   meta_path <- paste0(dest, ".vintage.yaml")
   if (file.exists(dest) && file.exists(meta_path) && !refresh) {
     meta <- yaml::read_yaml(meta_path)
-    meta$path <- dest
-    meta$from_cache <- TRUE
-    return(meta)
+    # A discovery page (allow_mirror = FALSE) is only trustworthy if it came
+    # from the live site: a cached mirror copy yields last month's links, so
+    # it is ignored and re-fetched rather than silently reused.
+    if (allow_mirror || identical(meta$source, "statssa")) {
+      meta$path <- dest
+      meta$from_cache <- TRUE
+      return(meta)
+    }
   }
-  got <- fetch_url(url, dest, cfg)
+  got <- fetch_url(url, dest, cfg, allow_mirror = allow_mirror)
   meta <- list(url = url, filename = filename, source = got$source,
                retrieved_at = got$retrieved_at,
                size_bytes = file.size(dest))
@@ -117,7 +145,8 @@ scrape_publication_page <- function(ppn, sch, refresh = FALSE,
   url <- sub("\\{PPN\\}", ppn, cfg$publication_page)
   url <- sub("\\{SCH\\}", sch, url)
   cache_name <- sprintf("pubpage_%s_%s.html", gsub("[^A-Za-z0-9.]", "_", ppn), sch)
-  meta <- fetch_cached(url, "pubpages", cache_name, refresh = refresh, root = root, cfg = cfg)
+  meta <- fetch_cached(url, "pubpages", cache_name, refresh = refresh, root = root, cfg = cfg,
+                       allow_mirror = FALSE)
   html <- rvest::read_html(meta$path)
   a <- rvest::html_elements(html, "a")
   href <- rvest::html_attr(a, "href")
@@ -160,7 +189,8 @@ discover_sch <- function(ppn, refresh = FALSE, root = here::here(), cfg = sa_con
   # The site search page lists releases with page_id=1854&PPN=..&SCH=.. links.
   url <- paste0(cfg$base_url, "/?page_id=1854&PPN=", utils::URLencode(ppn, reserved = TRUE))
   cache_name <- sprintf("index_%s.html", gsub("[^A-Za-z0-9.]", "_", ppn))
-  meta <- fetch_cached(url, "pubpages", cache_name, refresh = refresh, root = root, cfg = cfg)
+  meta <- fetch_cached(url, "pubpages", cache_name, refresh = refresh, root = root, cfg = cfg,
+                       allow_mirror = FALSE)
   html <- rvest::read_html(meta$path)
   href <- rvest::html_attr(rvest::html_elements(html, "a"), "href")
   sch <- stringr::str_match(href, "SCH=(\\d+)")[, 2]
@@ -170,6 +200,87 @@ discover_sch <- function(ppn, refresh = FALSE, root = here::here(), cfg = sa_con
   }
   # Highest SCH observed = latest scheduled release.
   as.character(max(as.integer(sch)))
+}
+
+#' Known filename variants for one release artefact and period.
+#'
+#' Stats SA's naming is inconsistent in ways observed directly in their own
+#' published links: a space is sometimes missing before a parenthesis or
+#' after the publication code, quarter and year swap order in some GDP
+#' vintages, and corrected files carry _v2/_v3 suffixes. Every variant below
+#' is one that has actually appeared on statssa.gov.za. Candidates are
+#' ordered newest-version-first; each is HEAD-probed and the first the server
+#' confirms is used, so nothing here is assumed to exist.
+candidate_paths <- function(release, period, artefact) {
+  p <- parse_period_one(period)
+  yyyymm <- gsub("-", "", p$period)
+  q <- lubridate::quarter(p$date)
+  yyyy <- lubridate::year(p$date)
+  ord <- c("1st", "2nd", "3rd", "4th")[q]
+  ts <- "/timeseriesdata/Excel/"
+
+  stems <- switch(paste(release, artefact, sep = "."),
+    "cpi.coicop" = paste0(ts, c(
+      sprintf("P0141 - CPI(COICOP) from Jan 2008 (%s)", yyyymm),
+      sprintf("P0141 - CPI(COICOP) from Jan 2008(%s)", yyyymm),
+      sprintf("P0141 CPI (COICOP) from January 2008 (%s)", yyyymm))),
+    "cpi.digit8" = paste0(ts, c(
+      sprintf("P0141 - CPI(5 and 8 digit) from Jan 2017 (%s)", yyyymm),
+      sprintf("P0141 - CPI(5 and 8 digit) from Jan 2017(%s)", yyyymm),
+      sprintf("P0141 - CPI (COICCOP 2018 - 8digit) (%s)", yyyymm))),
+    "cpi.release_pdf" = paste0("/publications/P0141/", c(
+      sprintf("P0141%s%d", format(p$date, "%B"), yyyy),
+      sprintf("P0141%s%d", format(p$date, "%b"), yyyy))),
+    "ppi.main" = paste0(ts, c(
+      sprintf("P0142.1 PPI New series from 2013(%s)", yyyymm),
+      sprintf("P0142.1 PPI New series from 2013 (%s)", yyyymm))),
+    "gdp.main" = paste0("/publications/P0441/", c(
+      sprintf("GDP P0441 - GDP Time series Q%d %d", q, yyyy),
+      sprintf("GDP P0441- GDP Time series Q%d %d", q, yyyy),
+      sprintf("GDP P0441 - GDP Time series %d Q%d", yyyy, q))),
+    "qlfs.main" = paste0("/publications/P0211/", c(
+      sprintf("P0211%s%sQuarter%d", q, ord, yyyy),
+      sprintf("P0211%sQuarter%d", ord, yyyy))),
+    stop("No candidate naming pattern for ", release, ".", artefact, call. = FALSE)
+  )
+  ext <- if (identical(artefact, "release_pdf")) ".pdf" else switch(release, cpi = ".zip", ppi = ".zip", gdp = ".xlsx", qlfs = ".pdf")
+  # corrected files supersede the original: probe highest version first
+  suffixes <- if (release %in% c("gdp")) c("_v4", "_v3", "_v2", "") else c("_v2", "")
+  out <- character(0)
+  for (sfx in suffixes) for (stem in stems) out <- c(out, paste0(stem, sfx, ext))
+  out
+}
+
+#' HEAD-probe a path on statssa.gov.za. Returns TRUE only on a 200 whose body
+#' would be a real file (a challenge page answers on GET, not HEAD of a static
+#' path, but the content type is checked anyway).
+probe_exists <- function(path, cfg = sa_config()) {
+  url <- paste0(cfg$base_url, utils::URLencode(path))
+  throttle(cfg$fetch$min_delay_seconds)
+  resp <- tryCatch(
+    httr2::req_perform(httr2::req_method(sa_request(url, cfg), "HEAD")),
+    error = function(e) NULL)
+  if (is.null(resp) || httr2::resp_status(resp) != 200) return(FALSE)
+  ct <- tolower(httr2::resp_header(resp, "content-type") %||% "")
+  !grepl("text/html", ct, fixed = TRUE)
+}
+
+#' Rung B: resolve one artefact to a live URL by probing known variants.
+#' Returns list(href, filename, version) or NULL when nothing exists.
+discover_by_probe <- function(release, period, artefact, cfg = sa_config()) {
+  for (path in candidate_paths(release, period, artefact)) {
+    if (probe_exists(path, cfg)) {
+      v <- stringr::str_match(path, "_v(\\d+)\\.")[, 2]
+      if (!is.na(v) && as.integer(v) >= 3) {
+        message("Revision signal: ", basename(path), " is at version ", v,
+                " - a correction beyond the usual _v2; check the release notice.")
+      }
+      return(list(href = paste0(cfg$base_url, utils::URLencode(path)),
+                  filename = basename(path),
+                  version = if (is.na(v)) 1L else as.integer(v)))
+    }
+  }
+  NULL
 }
 
 #' Cache-first artefact lookup: newest file in data-raw/{release}/ whose name
@@ -201,7 +312,10 @@ fetch_release <- function(release, period, refresh = FALSE,
   patterns <- switch(release,
     cpi = list(
       coicop = "CPI\\(COICOP\\) from Jan 2008.*\\.zip$",
-      digit8 = "CPI\\(5 and 8 digit\\) from Jan 2017.*\\.zip$"),
+      digit8 = "CPI\\(5 and 8 digit\\) from Jan 2017.*\\.zip$",
+      # the release PDF carries Table C, against which computed division
+      # contributions are reconciled - the reconciliation is the point
+      release_pdf = "^P0141[A-Za-z]+\\d{4}\\.pdf$"),
     ppi = list(main = "PPI New series from 2013.*\\.zip$"),
     gdp = list(main = "GDP Time series.*\\.xlsx$"),
     qlfs = list(main = "^P0211.*Quarter\\d{4}\\.pdf$"),
@@ -228,19 +342,44 @@ fetch_release <- function(release, period, refresh = FALSE,
     if (!is.na(hit)) out[[nm]] <- hit else missing <- c(missing, nm)
   }
   if (length(missing) > 0) {
-    rel_cfg <- cfg$releases[[release]]
-    sch <- rel_cfg$sch %||% discover_sch(rel_cfg$ppn, refresh = refresh, root = root, cfg = cfg)
-    links <- scrape_publication_page(rel_cfg$ppn, sch, refresh = refresh, root = root, cfg = cfg)
-    flag_reversions(links)
+    # Rung A: the canonical publication page, scraped, links taken verbatim.
+    links <- tryCatch({
+      rel_cfg <- cfg$releases[[release]]
+      sch <- rel_cfg$sch %||% discover_sch(rel_cfg$ppn, refresh = refresh,
+                                           root = root, cfg = cfg)
+      flag_reversions(scrape_publication_page(rel_cfg$ppn, sch, refresh = refresh,
+                                              root = root, cfg = cfg))
+    }, error = function(e) {
+      message("Publication-page discovery unavailable (", conditionMessage(e),
+              "); falling back to probe-verified discovery against the live site.")
+      NULL
+    })
+
     for (nm in missing) {
-      match_i <- grepl(patterns[[nm]], links$filename)
-      if (!any(match_i)) {
-        stop(sprintf("No artefact matching '%s' on publication page for %s (%s). Links seen: %s",
-                     patterns[[nm]], release, sch,
-                     paste(utils::head(links$filename, 10), collapse = "; ")), call. = FALSE)
+      link <- NULL; strategy <- NA_character_
+      if (!is.null(links)) {
+        match_i <- grepl(patterns[[nm]], links$filename)
+        if (any(match_i)) {
+          link <- as.list(links[match_i, ][1, ]); strategy <- "publication_page"
+        }
       }
-      link <- links[match_i, ][1, ]
-      meta <- fetch_cached(link$href, release, link$filename, refresh = refresh, root = root, cfg = cfg)
+      if (is.null(link)) {
+        # Rung B: probe known filename variants; the server confirms which exists.
+        link <- discover_by_probe(release, period, nm, cfg)
+        strategy <- "probe_verified"
+      }
+      if (is.null(link)) {
+        stop(sprintf(paste0("check_artefact_discoverable: could not locate the %s artefact ",
+                            "for %s %s. The publication page was %s and no known filename ",
+                            "variant exists on the server. Candidates probed: %s"),
+                     nm, release, period,
+                     if (is.null(links)) "unreachable" else "reachable but had no match",
+                     paste(basename(candidate_paths(release, period, nm)), collapse = "; ")),
+             call. = FALSE)
+      }
+      meta <- fetch_cached(link$href, release, link$filename, refresh = refresh,
+                           root = root, cfg = cfg)
+      record_strategy(meta$path, strategy)
       out[[nm]] <- meta$path
     }
   }
@@ -258,6 +397,16 @@ fetch_release <- function(release, period, refresh = FALSE,
 }
 
 `%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
+
+#' Note which discovery rung produced an artefact, in its vintage sidecar.
+record_strategy <- function(path, strategy) {
+  meta_path <- paste0(path, ".vintage.yaml")
+  if (!file.exists(meta_path)) return(invisible(NULL))
+  meta <- yaml::read_yaml(meta_path)
+  meta$discovery <- strategy
+  yaml::write_yaml(meta, meta_path)
+  invisible(NULL)
+}
 
 #' Collect vintage metadata for fetched artefact paths (sidecar files written
 #' by fetch_cached; seeded caches carry them too).

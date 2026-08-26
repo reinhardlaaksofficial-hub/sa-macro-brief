@@ -89,24 +89,33 @@ A `targets` pipeline (`_targets.R`) rebuilds all four briefs:
 
 ## Sources, caveats, limitations
 
-Basic data: Statistics South Africa — publication pages and time-series
-spreadsheets, scraped and cached politely (1 request/second, descriptive
-User-Agent, exponential backoff, nothing parallelised). Artefact filenames
-are never constructed: releases get re-versioned (`_v2`, `_v3`) after
-corrections, and a `_v3` is surfaced as a revision signal. When the Stats SA
-site's bot protection blocks non-browser clients (it does on some networks),
-the fetcher falls back to the Internet Archive's copy of the same URL and
-records that provenance in the vintage metadata and the PDF footer — it never
-attempts to bypass the protection. Details and every judgement call:
+Basic data: Statistics South Africa — fetched live from statssa.gov.za and
+cached politely (1 request/second, descriptive User-Agent, exponential
+backoff, nothing parallelised). Every brief in `output/` was built from files
+this tool downloaded directly from Stats SA.
+
+Artefact discovery runs a ladder, because filenames must never be assumed:
+it first scrapes the publication page and takes its links verbatim; if that
+page is unreachable it probes the known filename variants with HEAD requests
+and uses only what the server confirms exists, newest correction first. That
+is how it picks `GDP … Q1 2026_v2.xlsx` on its own — the un-suffixed name
+now 404s, having been superseded — and how a `_v3` gets surfaced as a
+revision signal. Stats SA's bot protection challenges the site's HTML pages
+from some networks (it does from mine) while serving the data files
+normally; the tool detects that challenge so it can never be mistaken for
+content, never attempts to answer or bypass it, and never accepts a mirrored
+copy of a *discovery* page, since stale links are worse than none. Details
+and every judgement call:
 [docs/METHODOLOGY.md](docs/METHODOLOGY.md),
 [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md),
 [docs/DECISIONS.md](docs/DECISIONS.md),
 [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
 
 Known limitations: the QLFS parser is landmark-based over PDF text and would
-need re-anchoring if Stats SA redesigns the tables; the breadth series
-currently ends at the newest obtainable vintage of the 8-digit file; LU3
-history begins Q3:2025 by construction.
+need re-anchoring if Stats SA redesigns the tables; probe-based discovery
+depends on a list of naming variants observed in Stats SA's own links, and a
+genuinely new shape fails loudly with the probed candidates listed rather
+than silently; LU3 history begins Q3:2025 by construction.
 
 *Basic data: Statistics South Africa. Users may apply the information as they
 wish, provided they acknowledge Stats SA as the source of the basic data, and

@@ -28,12 +28,23 @@ combination only appears in derived exports, never in Stats SA originals.
 
 ## Stage 2 — fetch layer
 
-**Mirror fallback over challenge evasion.** When Stats SA's Imperva layer
-challenges a client, the fetcher does not try to defeat it (no cookie
-transplants, no header spoofing). It falls back to the Internet Archive's
-copy of the identical URL and records the source in the vintage metadata, so
-provenance is never silently laundered. The alternative — automating the
-"verify you are human" check — was rejected outright.
+**A blocked HTML page is not a blocked site.** The first build concluded the
+site was unreachable after testing only the `?page_id=` publication page, and
+sourced everything from the Internet Archive. That was wrong: the static data
+files serve normally to the same client. The lesson worth keeping is that a
+negative result about *one URL shape* must not be generalised to a host —
+especially when the generalisation quietly defeats the tool's whole purpose.
+The fetch layer now proves the direct path on every run and records per-file
+provenance so this cannot be hand-waved again.
+
+**Probe-verified discovery instead of a mirror workaround.** Where HTML
+discovery is challenged, candidate filenames are HEAD-probed against the live
+server and only a confirmed 200 is used. This is deliberately not the
+"construct a filename" approach the brief forbids: construction assumes,
+probing verifies, and supersession surfaces as a 404 on the old name rather
+than a stale download. Answering or bypassing the bot check was rejected
+outright; so was serving *discovery* from a mirror, since stale links are
+worse than no links.
 
 **Cache-first release fetching.** `fetch_release()` looks for a cached
 artefact matching the release pattern and period tag before touching the

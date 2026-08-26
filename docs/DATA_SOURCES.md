@@ -53,23 +53,40 @@ sidecar recording URL, retrieval timestamp and source; cached content is
 never re-fetched unless `--refresh` is passed. After every download the
 period inside the file is asserted against the period requested.
 
-## Mirror fallback
+## Discovery ladder and the HTML challenge
 
-`www.statssa.gov.za` sits behind Imperva bot protection which, on some
-networks, challenges non-browser clients. The fetcher detects the challenge
-page (it is never mistaken for content), does not attempt to defeat it, and
-falls back to the Internet Archive's copy of the identical URL
-(`web.archive.org/web/<year>if_/<url>`), recording `source: wayback` in the
-vintage sidecar and in the PDF footer. The cached inputs in this repository
-were obtained that way; on a network the site trusts, the direct path is
-used and nothing else changes. See `docs/OPEN_QUESTIONS.md`.
+Stats SA's Imperva layer challenges HTML requests from some networks — every
+`?page_id=` page, the timeseries index, directory listings — while serving the
+static data files (`.xlsx`, `.zip`, `.pdf`) to the same client, with the same
+descriptive User-Agent, without challenge. Measured on the build machine:
+data files 200, HTML challenged on every attempt.
+
+The fetcher therefore discovers artefacts in three rungs, always live first:
+
+1. **Publication page** — scraped, links taken verbatim. Canonical, and the
+   method the brief specifies. Primary on every run.
+2. **Probe-verified discovery** — the small set of filename variants actually
+   observed in Stats SA's published links is HEAD-probed against the live
+   server, newest correction first, and only a path the server confirms with
+   a 200 is used. Nothing is assumed: a wrong guess is a 404, not a corrupt
+   file, and supersession is detected (for GDP Q1 2026 the server returns 200
+   for `_v2` and 404 for the un-suffixed name).
+3. **Internet Archive mirror** — last resort, file bytes only.
+
+Discovery is never served from a mirror or from a cached mirrored page: a
+stale publication page yields last month's links, which is worse than none.
+The challenge page is detected so it can never be mistaken for content, and
+is never answered or bypassed. Each artefact's vintage sidecar records both
+`source` (statssa / wayback) and `discovery` (publication_page /
+probe_verified), so provenance is auditable per file.
 
 ## Limitations
 
 - The QLFS is parsed from PDF text; the parser is landmark-based and
   asserts accounting identities after every parse, but a substantial layout
   redesign by Stats SA would require re-anchoring.
-- The 8-digit CPI file's archived vintage lags the current month until the
-  live site is reachable (affects the breadth series' endpoint only).
+- Probe-verified discovery depends on a list of naming variants observed in
+  Stats SA's own links; a genuinely new shape fails loudly, listing the
+  candidates it probed, rather than silently fetching the wrong file.
 - LU3 exists only from Q3:2025; long LU histories are structurally
   unavailable and accumulate release by release.
