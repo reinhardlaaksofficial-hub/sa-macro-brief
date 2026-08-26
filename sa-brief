@@ -1,0 +1,85 @@
+#!/usr/bin/env Rscript
+# sa-brief: release-day briefing CLI.
+#
+#   ./sa-brief cpi  --period 2026-07
+#   ./sa-brief ppi  --period 2026-06
+#   ./sa-brief gdp  --period 2026Q1
+#   ./sa-brief qlfs --period 2026Q2
+#   ./sa-brief cpi  --period 2026-07 --refresh
+#   ./sa-brief calendar
+
+# run from the project root regardless of caller's cwd
+args_full <- commandArgs(trailingOnly = FALSE)
+script_path <- sub("^--file=", "", grep("^--file=", args_full, value = TRUE)[1])
+project_root <- normalizePath(dirname(script_path))
+setwd(project_root)
+source(file.path(project_root, "renv", "activate.R"))
+
+suppressPackageStartupMessages({
+  library(optparse)
+})
+
+argv <- commandArgs(trailingOnly = TRUE)
+if (length(argv) == 0) {
+  cat("Usage: sa-brief {cpi|ppi|gdp|qlfs|calendar} [--period P] [--refresh]\n")
+  quit(status = 1)
+}
+command <- argv[1]
+
+for (f in sort(list.files(file.path(project_root, "R"), pattern = "\\.R$", full.names = TRUE))) {
+  source(f)
+}
+
+if (command == "calendar") {
+  cal <- yaml::read_yaml(file.path(project_root, "config", "release_calendar.yaml"))
+  cat("Release rhythm (exact dates on each publication page):\n")
+  for (nm in names(cal$calendar)) {
+    cat(sprintf("  %-5s %s\n", nm, cal$calendar[[nm]]$rule))
+  }
+  cat("\nPage-verified publication dates:\n")
+  for (k in cal$known_dates) {
+    cat(sprintf("  %-5s %-8s published %s\n", k$release, k$period, k$published))
+  }
+  quit(status = 0)
+}
+
+opt <- parse_args(
+  OptionParser(option_list = list(
+    make_option("--period", type = "character", default = NULL,
+                help = "Reference period: YYYY-MM (cpi, ppi) or YYYYQn (gdp, qlfs)"),
+    make_option("--refresh", action = "store_true", default = FALSE,
+                help = "Bypass the data-raw cache and re-fetch")
+  )),
+  args = argv[-1]
+)
+
+if (!command %in% c("cpi", "ppi", "gdp", "qlfs")) {
+  stop("Unknown release: ", command, call. = FALSE)
+}
+if (is.null(opt$period)) stop("--period is required", call. = FALSE)
+
+payload <- switch(command,
+  cpi = {
+    d <- load_cpi(opt$period, refresh = opt$refresh, root = project_root)
+    t <- transform_cpi(d, opt$period, root = project_root)
+    t <- add_cpi_analytics(t, d, root = project_root)
+    payload_cpi(t, root = project_root)
+  },
+  ppi = {
+    d <- load_ppi(opt$period, refresh = opt$refresh, root = project_root)
+    t <- transform_ppi(d, opt$period, root = project_root)
+    payload_ppi(t, root = project_root)
+  },
+  gdp = {
+    d <- load_gdp(opt$period, refresh = opt$refresh, root = project_root)
+    t <- transform_gdp(d, opt$period, root = project_root)
+    payload_gdp(t, root = project_root)
+  },
+  qlfs = {
+    d <- load_qlfs(opt$period, refresh = opt$refresh, root = project_root)
+    t <- transform_qlfs(d, opt$period, root = project_root)
+    payload_qlfs(t, root = project_root)
+  }
+)
+
+render_brief(payload, root = project_root)

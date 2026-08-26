@@ -1,0 +1,96 @@
+---
+format:
+  pdf:
+    documentclass: article
+    papersize: a4
+    fontsize: 9pt
+    geometry:
+      - margin=1.5cm
+      - top=1.2cm
+      - bottom=1.4cm
+    colorlinks: false
+    pagestyle: empty
+    header-includes:
+      - \usepackage{booktabs}
+      - \usepackage{array}
+      - \usepackage{xcolor}
+      - \definecolor{accent}{HTML}{0F6E63}
+      - \definecolor{inkgrey}{HTML}{6A6A73}
+      - \setlength{\parindent}{0pt}
+params:
+  payload: ""
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+p <- readRDS(params$payload)
+# escape LaTeX-active characters in data-derived text (values may carry % and &)
+esc <- function(x) {
+  x <- gsub("\\\\", "\\\\textbackslash{}", x)
+  x <- gsub("([%&#_])", "\\\\\\1", x)
+  x
+}
+```
+
+```{r title, results="asis"}
+cat("```{=latex}\n")
+cat(sprintf("\\begin{center}{\\LARGE\\bfseries %s}\\\\[2pt]{\\color{inkgrey} Release-day briefing --- %s}\\end{center}\n",
+            esc(p$title), esc(p$source_line)))
+cat("\\vspace{2pt}\\hrule\\vspace{6pt}\n")
+cat("```\n")
+```
+
+```{r glance, results="asis"}
+cat("```{=latex}\n")
+cells <- vapply(p$glance, function(g)
+  sprintf("\\begin{minipage}[t]{0.24\\textwidth}\\centering {\\color{inkgrey}\\small %s}\\\\[1pt]{\\Large\\bfseries\\color{accent} %s}\\end{minipage}",
+          esc(g$label), esc(g$value)), "")
+cat(paste(cells, collapse = "\\hfill"), "\n\n")
+cat("\\vspace{4pt}\\hrule\\vspace{8pt}\n")
+cat("```\n")
+```
+
+```{r charts, results="asis"}
+cat("```{=latex}\n")
+cat(sprintf("\\includegraphics[width=0.49\\textwidth]{%s}\\hfill\\includegraphics[width=0.49\\textwidth]{%s}\n\n",
+            p$charts[1], p$charts[2]))
+cat("\\vspace{4pt}\n")
+cat("```\n")
+```
+
+```{r commentary, results="asis"}
+cat("```{=latex}\n")
+cat("{\\bfseries Commentary}\\\\[2pt]\n")
+cat(paste(esc(p$commentary), collapse = " "), "\n\n")
+cat("\\vspace{4pt}\n")
+cat("```\n")
+```
+
+```{r table, results="asis"}
+cat("```{=latex}\n")
+tbl <- p$table
+if (!is.null(tbl) && nrow(tbl) > 0) {
+  align <- paste0("l", paste(rep("r", ncol(tbl) - 1), collapse = ""))
+  cat(sprintf("{\\footnotesize\n\\begin{tabular}{%s}\n\\toprule\n", align))
+  cat(paste(esc(names(tbl)), collapse = " & "), "\\\\\n\\midrule\n")
+  for (i in seq_len(nrow(tbl))) {
+    cat(paste(esc(as.character(unlist(tbl[i, ]))), collapse = " & "), "\\\\\n")
+  }
+  cat("\\bottomrule\n\\end{tabular}\n}\n\n")
+}
+cat("```\n")
+```
+
+```{r footer, results="asis"}
+cat("```{=latex}\n")
+cat("\\vfill\\hrule\\vspace{3pt}\n")
+src <- if (identical(p$vintage_source, "wayback"))
+  " (retrieved via Internet Archive mirror)" else ""
+cat(sprintf("{\\scriptsize\\color{inkgrey} %s. Data retrieved %s%s. %s\\\\ %s}\n",
+            esc(p$source_line), esc(p$retrieved), src,
+            esc(p$revision_note), esc(p$attribution)))
+cat("```\n")
+```

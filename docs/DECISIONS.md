@@ -46,6 +46,32 @@ the inconsistent spacing Stats SA uses.
 ids are discovered at run time as the highest SCH on the publication index for
 the PPN, rather than pinned in config where they would go stale monthly.
 
+## Stage 4 — transform, charts, CPI brief end-to-end
+
+**Reproducible PDFs.** Idempotence ("two runs, same period, byte-identical
+output") is achieved by pinning `SOURCE_DATE_EPOCH` to the data vintage, a
+fixed raster device (ragg at fixed size/dpi), and deriving every printed
+timestamp from the vintage sidecar rather than the wall clock. Verified by
+hashing two consecutive runs. The alternative — accepting nondeterministic
+PDF creation dates — was rejected because it makes revision diffs noisy.
+
+**One accent colour vs two-series charts.** The house style allows one accent,
+but headline-vs-core and PPI-vs-CPI need two series. Comparison series wear
+dark ink with a dashed linetype and a direct end label, so identity never
+rides on hue alone (also the colour-vision-deficiency-safe choice; a teal/grey
+hue pair failed a CVD-separation check). A second accent hue was rejected.
+
+**Revision flagging.** Every run snapshots key-series values into
+`data/vintages/{release}.csv` and diffs against the latest prior snapshot;
+changed historical observations are reported in the PDF footer as
+"revised from X to Y". Storing only changed observations keeps the store
+small while preserving each distinct vintage.
+
+**South African number style in output.** Prose, tables and chart labels use
+decimal commas and thin-space thousands (matching Stats SA releases); code and
+intermediate data keep R's decimal points. The mixed style in early drafts was
+rejected for consistency with §6's one-symbol-one-meaning rule.
+
 **Quarto binary.** The machine has no standalone Quarto; the pipeline uses the
 Quarto 1.8.25 bundled with RStudio via the `QUARTO_PATH` environment variable
 set in `sa-brief`. Installing a second Quarto via Homebrew was rejected as
