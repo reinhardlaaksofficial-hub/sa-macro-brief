@@ -1,7 +1,7 @@
 # sa-macro-brief
 
-[![tests](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml/badge.svg)](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml)
-[![watch](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/watch.yml/badge.svg)](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/watch.yml)
+[![tests](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/tests.yml/badge.svg)](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/tests.yml)
+[![watch](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml/badge.svg)](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **A one-page macro briefing note, in your Slack, minutes after Statistics
@@ -44,7 +44,7 @@ period → download the PDF from the run's artifacts.
 **C. Run it locally**
 
 ```bash
-git clone https://github.com/reinhardlaaks/sa-macro-brief && cd sa-macro-brief
+git clone https://github.com/reinhardlaaksofficial-hub/sa-macro-brief && cd sa-macro-brief
 Rscript -e 'install.packages("renv"); renv::restore()'
 ./sa-brief cpi --period 2026-07
 ```
