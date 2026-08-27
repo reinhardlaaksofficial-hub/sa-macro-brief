@@ -4,8 +4,8 @@
 [![watch](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml/badge.svg)](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**A one-page macro briefing note, in your Slack, minutes after Statistics
-South Africa publishes — with no server, no laptop and nothing installed.**
+**A one-page macro briefing note, delivered to Slack minutes after
+Statistics South Africa publishes.**
 
 Covers the four releases a South African macro desk waits for: CPI, PPI, GDP
 and the Quarterly Labour Force Survey. It does in ~25 seconds what a junior
@@ -22,24 +22,38 @@ briefings are archived automatically to [`briefs/`](briefs/).*
 
 ## Quick start — pick one
 
-**A. Get briefings automatically (2 minutes, nothing installed)**
+**A. Get briefings automatically on release day**
+
+The schedule and delivery run on GitHub Actions; the *fetch* has to run from
+a network Stats SA serves (see [Where it can run](#where-it-can-run) — their
+bot protection blocks GitHub's shared runners). So:
 
 1. Fork this repository.
-2. **Actions** tab → enable workflows.
+2. Register a **self-hosted runner**: *Settings → Actions → Runners → New
+   self-hosted runner*, and follow the shown commands on any machine that can
+   reach statssa.gov.za — a spare desktop, an office box, a small VPS. Then
+   in `.github/workflows/watch.yml` change `runs-on: ubuntu-latest` to
+   `runs-on: self-hosted`.
 3. *(optional)* **Settings → Secrets and variables → Actions → New secret**,
    named `SLACK_WEBHOOK_URL`, set to a Slack
    [incoming webhook](https://api.slack.com/messaging/webhooks).
 
-That is the entire setup. A scheduled job now polls Stats SA around each
-embargo, builds a briefing the moment a release lands, commits the PDF to
-`briefs/`, and posts it to Slack. If a run breaks — Stats SA renames a file,
-or changes a table — it says so loudly, because a briefing that silently
-fails to arrive is worse than an error.
+GitHub then handles scheduling, logging, retention and Slack delivery, while
+the machine you registered does the fetching. If a run breaks — Stats SA
+renames a file, or changes a table — it says so loudly, because a briefing
+that silently fails to arrive is worse than an error.
+
+If you would rather not involve GitHub at all,
+`./deploy/install-schedule.sh install` sets up launchd (macOS) or cron
+(Linux) directly on one machine. That path is verified working.
 
 **B. Build one right now (30 seconds, nothing installed)**
 
 Actions tab → **Build a briefing** → *Run workflow* → choose a release and
-period → download the PDF from the run's artifacts.
+period → download the PDF from the run's artifacts. On GitHub's shared
+runners this serves *already-archived* releases via the Internet Archive
+fallback, which is fine for trying it out or rebuilding a past period, but
+is not a substitute for release-day capture.
 
 **C. Run it locally**
 
@@ -156,6 +170,30 @@ and every judgement call:
 [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md),
 [docs/DECISIONS.md](docs/DECISIONS.md),
 [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
+
+<a name="where-it-can-run"></a>
+### Where it can run
+
+Stats SA sits behind Imperva bot protection. Measured, not assumed:
+
+| Client | Data files (`.xlsx`, `.zip`, `.pdf`) | HTML pages |
+|---|---|---|
+| Ordinary home/office connection | served normally | challenged |
+| GitHub-hosted Actions runner | **challenged** | challenged |
+
+So GitHub's shared runners cannot fetch a release directly. They fall back to
+the Internet Archive, which is fine for a release that has already been
+archived, but **useless on release day**: a file published minutes ago is in
+no archive. Release-day capture therefore has to run from a network Stats SA
+serves — your own machine, an office box, or a self-hosted Actions runner.
+The bot check is never answered or bypassed; it is detected, disclosed in the
+PDF footer as "retrieved via Internet Archive mirror", and recorded in each
+file's vintage sidecar, so provenance is never laundered.
+
+This also matters because Stats SA keeps only the **current** vintage of the
+CPI/PPI timeseries files — last month's zip is already a 404. A release day
+you do not capture is gone from the live site permanently, which is why the
+watcher polls through the embargo window.
 
 ### Status and honest limitations
 
