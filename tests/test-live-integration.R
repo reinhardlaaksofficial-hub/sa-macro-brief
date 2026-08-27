@@ -32,8 +32,19 @@ test_that("fetched artefacts record honest provenance", {
 
 test_that("the live site still serves every release the tool depends on", {
   skip_unless_live()
-  expect_false(is.null(discover_by_probe("cpi", "2026-07", "coicop")))
-  expect_false(is.null(discover_by_probe("ppi", "2026-06", "main")))
-  expect_false(is.null(discover_by_probe("gdp", "2026Q1", "main")))
-  expect_false(is.null(discover_by_probe("qlfs", "2026Q2", "main")))
+  # Never pin a period here: Stats SA keeps only the CURRENT vintage of the
+  # timeseries files and deletes the previous one, so a hardcoded month
+  # starts failing within weeks. Walk recent periods and require that at
+  # least one resolves for each release.
+  resolves_recently <- function(release, key, freq, n = 4) {
+    for (p in recent_periods(freq, n)) {
+      hit <- tryCatch(discover_by_probe(release, p, key), error = function(e) NULL)
+      if (!is.null(hit)) return(TRUE)
+    }
+    FALSE
+  }
+  expect_true(resolves_recently("cpi",  "coicop", "monthly"))
+  expect_true(resolves_recently("ppi",  "main",   "monthly"))
+  expect_true(resolves_recently("gdp",  "main",   "quarterly"))
+  expect_true(resolves_recently("qlfs", "main",   "quarterly"))
 })
