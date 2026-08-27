@@ -197,6 +197,13 @@ watcher polls through the embargo window.
 
 ### Status and honest limitations
 
+**Caught its first live release on 27 August 2026.** The scheduled watcher
+polled at 10:54 and reported July PPI as not yet published; at its next
+wake-up, 11:40, the file had appeared. It fetched directly from Stats SA and
+produced the briefing unattended — PPI 5,7% y/y, −1,0% m/m — with no human
+involved. The log is in `output/logs/watch.log`; the brief is
+[`briefs/ppi_202607.pdf`](briefs/ppi_202607.pdf).
+
 Every figure the tests assert has been checked against Stats SA's published
 values, but **each release type has so far been validated against a single
 period** (July 2026 CPI, June 2026 PPI, Q1 2026 GDP, Q2 2026 QLFS). The
