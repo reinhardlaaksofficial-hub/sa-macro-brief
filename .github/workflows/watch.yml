@@ -1,0 +1,128 @@
+name: Watch for new releases
+
+# The hosted runtime: no laptop, no server, no cron on anyone's machine.
+#
+# Polls Statistics South Africa around the embargo hours, builds a briefing
+# for any newly published release, commits it to briefs/ so the repository
+# becomes a browsable archive, and posts to Slack if a webhook is configured.
+#
+# To use this in your own fork:
+#   1. Actions tab -> enable workflows
+#   2. (optional) Settings -> Secrets -> Actions -> new secret
+#      SLACK_WEBHOOK_URL = https://hooks.slack.com/services/...
+# That is the whole setup.
+on:
+  schedule:
+    # Stats SA embargoes are 10:00 and 11:30 SAST (UTC+2) on weekdays.
+    # Cron here is UTC, so 07:10 / 08:10 / 09:45 / 11:10 UTC.
+    - cron: '10 7 * * 1-5'
+    - cron: '10 8 * * 1-5'
+    - cron: '45 9 * * 1-5'
+    - cron: '10 11 * * 1-5'
+  workflow_dispatch:
+
+# Needed to commit new briefs and the vintage store back to the repository.
+permissions:
+  contents: write
+
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
+# Workflow-level so the step `if:` conditions below can see it. A step's own
+# `env:` block is NOT visible to that step's `if`, which would silently skip
+# every notification.
+env:
+  SLACK: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::readxl
+            any::pdftools
+            any::rvest
+            any::httr2
+            any::dplyr
+            any::tidyr
+            any::stringr
+            any::lubridate
+            any::ggplot2
+            any::yaml
+            any::here
+            any::optparse
+            any::quarto
+            any::zip
+            any::ragg
+            any::testthat
+            any::withr
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
+
+      # Briefs already published live in briefs/; the watcher treats a brief
+      # as "already built" by looking in output/, so seed it from the archive.
+      - name: Restore previously published briefs
+        run: |
+          mkdir -p output briefs
+          cp briefs/*.pdf output/ 2>/dev/null || true
+
+      - name: Poll Stats SA and build anything new
+        id: watch
+        run: |
+          set -o pipefail
+          ./sa-brief watch 2>&1 | tee watch-output.txt
+          if grep -q " built " watch-output.txt; then
+            echo "new_brief=true" >> "$GITHUB_OUTPUT"
+            grep " built " watch-output.txt | tail -1 > built-line.txt
+            echo "summary=$(cat built-line.txt)" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_brief=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish the new briefing to the archive
+        if: steps.watch.outputs.new_brief == 'true'
+        run: |
+          cp output/*.pdf briefs/ 2>/dev/null || true
+          git config user.name  "sa-macro-brief bot"
+          git config user.email "actions@github.com"
+          git add briefs data/vintages 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish briefing: ${{ steps.watch.outputs.summary }}"
+            git push
+          fi
+
+      - name: Upload the briefing as an artifact
+        if: steps.watch.outputs.new_brief == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-briefing
+          path: output/*.pdf
+          retention-days: 90
+
+      - name: Notify Slack that a briefing is ready
+        if: steps.watch.outputs.new_brief == 'true' && env.SLACK != ''
+        run: |
+          TEXT="A new South African macro briefing is ready: ${{ steps.watch.outputs.summary }}. Archive: ${{ github.server_url }}/${{ github.repository }}/tree/main/briefs"
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "$(jq -n --arg t "$TEXT" '{text:$t}')" "$SLACK"
+
+      # A release that silently fails to arrive is worse than an error: people
+      # assume no news means no change. Shout when a run breaks.
+      - name: Notify Slack of failure
+        if: failure() && env.SLACK != ''
+        run: |
+          TEXT="sa-macro-brief watch FAILED. Stats SA may have changed a filename or table layout. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -sS -X POST -H 'Content-type: application/json' \
+            --data "$(jq -n --arg t "$TEXT" '{text:$t}')" "$SLACK"

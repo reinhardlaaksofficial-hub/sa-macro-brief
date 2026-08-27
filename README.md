@@ -1,15 +1,57 @@
 # sa-macro-brief
 
 [![tests](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml/badge.svg)](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/tests.yml)
+[![watch](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/watch.yml/badge.svg)](https://github.com/reinhardlaaks/sa-macro-brief/actions/workflows/watch.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One command turns a Statistics South Africa release into a one-page PDF
-briefing note — the work a junior bank economist does by hand in the hour
-after the embargo lifts.**
+**A one-page macro briefing note, in your Slack, minutes after Statistics
+South Africa publishes — with no server, no laptop and nothing installed.**
+
+Covers the four releases a South African macro desk waits for: CPI, PPI, GDP
+and the Quarterly Labour Force Survey. It does in ~25 seconds what a junior
+economist does by hand in the hour after the embargo lifts.
 
 Reinhard Laaks, University of Pretoria.
 
-![Generated CPI briefing for July 2026](docs/screenshot-cpi.png)
+| CPI | GDP |
+|---|---|
+| [![CPI briefing](docs/examples/cpi_202607.png)](docs/examples/cpi_202607.pdf) | [![GDP briefing](docs/examples/gdp_2026Q1.png)](docs/examples/gdp_2026Q1.pdf) |
+
+*Real output. More in [`docs/examples/`](docs/examples/); newly published
+briefings are archived automatically to [`briefs/`](briefs/).*
+
+## Quick start — pick one
+
+**A. Get briefings automatically (2 minutes, nothing installed)**
+
+1. Fork this repository.
+2. **Actions** tab → enable workflows.
+3. *(optional)* **Settings → Secrets and variables → Actions → New secret**,
+   named `SLACK_WEBHOOK_URL`, set to a Slack
+   [incoming webhook](https://api.slack.com/messaging/webhooks).
+
+That is the entire setup. A scheduled job now polls Stats SA around each
+embargo, builds a briefing the moment a release lands, commits the PDF to
+`briefs/`, and posts it to Slack. If a run breaks — Stats SA renames a file,
+or changes a table — it says so loudly, because a briefing that silently
+fails to arrive is worse than an error.
+
+**B. Build one right now (30 seconds, nothing installed)**
+
+Actions tab → **Build a briefing** → *Run workflow* → choose a release and
+period → download the PDF from the run's artifacts.
+
+**C. Run it locally**
+
+```bash
+git clone https://github.com/reinhardlaaks/sa-macro-brief && cd sa-macro-brief
+Rscript -e 'install.packages("renv"); renv::restore()'
+./sa-brief cpi --period 2026-07
+```
+
+Needs R ≥ 4.3, Quarto and a TeX install
+(`Rscript -e 'tinytex::install_tinytex()'` once). To schedule it on your own
+machine instead of GitHub, see [Scheduled operation](#scheduled-operation).
 
 ## The problem
 
@@ -70,17 +112,7 @@ footer. Two runs over the same inputs produce byte-identical PDFs.
 - Seasonal adjustment is always Stats SA's own; the pipeline never adjusts
   anything itself.
 
-## Install and run
-
-Requires R ≥ 4.3, the Quarto CLI (≥ 1.4; auto-detected from an RStudio
-install if not on `PATH`) and a TeX distribution
-(`Rscript -e 'tinytex::install_tinytex()'` once).
-
-```bash
-git clone <this repo> && cd sa-macro-brief
-Rscript -e 'install.packages("renv"); renv::restore()'
-./sa-brief cpi --period 2026-07
-```
+## Tests
 
 Tests run **offline** against small committed fixtures — cloning this repo
 never downloads from, or repeatedly hits, a government statistics server:
@@ -147,6 +179,10 @@ specify that the relevant application and analysis result from their own
 processing of the data.*
 
 ## Scheduled operation
+
+<a name="scheduled-operation"></a>
+Prefer GitHub Actions (Quick start A) — it needs no machine of your own.
+To schedule on your own hardware instead:
 
 The watcher polls rather than firing at a fixed instant, because Stats SA's
 publication dates move within the month:
