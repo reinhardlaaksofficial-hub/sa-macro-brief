@@ -36,7 +36,7 @@ releases:
     primary_format: pdf
 
 fetch:
-  user_agent: "sa-macro-brief/0.1 (research pipeline; contact: 306564783+reinhardlaaksofficial-hub@users.noreply.github.com)"
+  user_agent: "sa-macro-brief/0.1 (research pipeline; +https://github.com/reinhardlaaksofficial-hub/sa-macro-brief)"
   min_delay_seconds: 1
   max_retries: 5
   embargo_retry_minutes: 5
