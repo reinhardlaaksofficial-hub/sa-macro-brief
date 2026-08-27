@@ -24,9 +24,19 @@ briefings are archived automatically to [`briefs/`](briefs/).*
 
 **A. Get briefings automatically on release day**
 
-The schedule and delivery run on GitHub Actions; the *fetch* has to run from
-a network Stats SA serves (see [Where it can run](#where-it-can-run) — their
-bot protection blocks GitHub's shared runners). So:
+First, find a machine that can actually reach Stats SA. Their bot protection
+challenges many datacentre IP ranges (GitHub's shared runners included), and
+which hosts are affected is empirical — so check before you build anything:
+
+```bash
+git clone https://github.com/reinhardlaaksofficial-hub/sa-macro-brief
+cd sa-macro-brief && bash deploy/check-access.sh
+```
+
+It needs nothing but `curl`, takes a few seconds, and prints PASS or BLOCKED.
+Run it on whatever you are considering — your laptop, an office box, a
+free-tier VM. A PASS means that host can capture releases on the day; a
+BLOCKED host can only rebuild already-archived ones. Then:
 
 1. Fork this repository.
 2. Register a **self-hosted runner**: *Settings → Actions → Runners → New
@@ -174,7 +184,8 @@ and every judgement call:
 <a name="where-it-can-run"></a>
 ### Where it can run
 
-Stats SA sits behind Imperva bot protection. Measured, not assumed:
+Run `bash deploy/check-access.sh` on any machine to test it in seconds.
+Measured results so far, not assumed:
 
 | Client | Data files (`.xlsx`, `.zip`, `.pdf`) | HTML pages |
 |---|---|---|
@@ -240,7 +251,16 @@ publication dates move within the month:
 
 On macOS this installs a launchd user agent; on Linux, cron entries. (On
 Windows, point Task Scheduler at `deploy/watch.sh` via WSL or call
-`sa-brief watch` directly.) It runs on weekdays at 09:05, 10:05, 11:40 and 13:05 SAST, straddling the
+`sa-brief watch` directly.)
+
+Nothing runs continuously: the scheduler wakes the job **four times on each
+weekday** — 09:05, 10:05, 11:40 and 13:05 SAST, 20 times a week — and each
+check takes about 13 seconds and a handful of HEAD requests when there is
+nothing new. Between those moments no process of this project is alive. If
+the machine is asleep at a scheduled time, the run happens when it next
+wakes; if it is off, nothing happens until it is on again.
+
+It runs on weekdays at 09:05, 10:05, 11:40 and 13:05 SAST, straddling the
 10:00 (CPI) and 11:30 (PPI, GDP, QLFS) embargoes. Each pass asks one
 question per release — *is the newest completed period still unbuilt, and is
 its file on the server?* — then builds only that. It is idempotent, so extra
