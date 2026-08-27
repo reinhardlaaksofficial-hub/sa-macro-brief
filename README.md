@@ -176,6 +176,7 @@ normally; the tool detects that challenge so it can never be mistaken for
 content, never attempts to answer or bypass it, and never accepts a mirrored
 copy of a *discovery* page, since stale links are worse than none. Details
 and every judgement call:
+[NOTICE.md](NOTICE.md) (licence scope and Stats SA data terms),
 [docs/METHODOLOGY.md](docs/METHODOLOGY.md),
 [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md),
 [docs/DECISIONS.md](docs/DECISIONS.md),

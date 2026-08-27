@@ -19,16 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This licence covers the source code in this repository only.
-
-The statistical data this software retrieves is published by Statistics South
-Africa and is not covered by this licence. Per Stats SA's terms: users may
-apply the information as they wish, provided they acknowledge Stats SA as the
-source of the basic data, and specify that the relevant application and
-analysis result from their own processing of the data. No Stats SA data files
-are redistributed in this repository; the test fixtures contain small derived
-extracts used solely to verify the parsers, with Stats SA acknowledged as the
-source of the basic data.
