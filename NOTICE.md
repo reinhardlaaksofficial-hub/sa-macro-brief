@@ -1,8 +1,18 @@
 # Notices
 
-## Scope of the MIT licence
+## Scope of the licence
 
-[`LICENSE`](LICENSE) covers **the source code in this repository only**.
+[`LICENSE`](LICENSE) is the **PolyForm Noncommercial License 1.0.0**, and it
+covers **the source code in this repository only**.
+
+Permitted without asking: personal study, research and experimentation,
+hobby and amateur use, and use by charities, educational institutions, public
+research bodies and government. **Commercial use is not granted** by this
+licence — including internal use by a for-profit company. If you want to use
+this commercially, contact the author for a separate licence.
+
+This licence is deliberately not an OSI "open source" licence: it restricts
+the field of use, which the Open Source Definition does not allow.
 
 ## Statistics South Africa data
 
@@ -39,9 +49,11 @@ resolved at install time by `renv` from CRAN, and each remains under its own
 licence. Of the 20 packages used, 19 are permissive (MIT, BSD or Apache);
 `optparse` (the command-line argument parser) is GPL (>= 2). Because this
 repository distributes only its own source
-code and never ships those packages, the code here is offered under MIT; a
-combined *binary distribution* that bundled GPL dependencies would need to
-respect the GPL terms of those components.
+code and never ships those packages, its own terms apply to its own code
+alone. Note that a combined *binary distribution* bundling GPL dependencies
+would have to respect those components' GPL terms, which are incompatible
+with a noncommercial restriction — so do not ship this as a bundled binary
+containing `optparse`.
 
 Run `Rscript -e 'renv::restore()'` to install them, and see each package's
 own DESCRIPTION for its licence.

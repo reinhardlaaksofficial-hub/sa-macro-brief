@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/tests.yml/badge.svg)](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/tests.yml)
 [![watch](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml/badge.svg)](https://github.com/reinhardlaaksofficial-hub/sa-macro-brief/actions/workflows/watch.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-PolyForm%20Noncommercial-orange.svg)](LICENSE)
 
 **A one-page macro briefing note, delivered to Slack minutes after
 Statistics South Africa publishes.**
@@ -12,6 +12,10 @@ and the Quarterly Labour Force Survey. It does in ~25 seconds what a junior
 economist does by hand in the hour after the embargo lifts.
 
 Reinhard Laaks, University of Pretoria.
+
+**Licence: [PolyForm Noncommercial 1.0.0](LICENSE)** — free for personal
+study, research, education, charities and government. Commercial use
+requires a separate licence; [get in touch](https://github.com/reinhardlaaksofficial-hub).
 
 | CPI | GDP |
 |---|---|

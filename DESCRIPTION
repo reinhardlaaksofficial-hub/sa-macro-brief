@@ -8,7 +8,7 @@ Description: Ingests Statistics South Africa statistical releases (CPI, PPI,
     one-page PDF briefing note with charts. Basic data are sourced from
     Statistics South Africa; all applications and analysis result from our
     own processing of the data.
-License: MIT + file LICENSE
+License: file LICENSE
 Encoding: UTF-8
 Depends: R (>= 4.3)
 Imports:
